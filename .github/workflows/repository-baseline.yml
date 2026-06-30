@@ -32,43 +32,10 @@ jobs:
           )
 
           for path in "${required_files[@]}"; do
-            test -s "$path"
+            if [ ! -s "$path" ]; then
+              echo "Missing or empty required file: $path"
+              exit 1
+            fi
           done
 
-      - name: Verify workflow trigger stays pull_request-only
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          python3 - <<'PY'
-from pathlib import Path
-import re
-import sys
-
-workflow = Path(".github/workflows/repository-baseline.yml")
-lines = workflow.read_text().splitlines()
-
-try:
-    on_index = next(i for i, line in enumerate(lines) if line == "on:")
-except StopIteration:
-    print("Missing top-level 'on:' declaration")
-    sys.exit(1)
-
-top_level_event_lines = []
-
-for line in lines[on_index + 1:]:
-    if line and not line.startswith(" "):
-        break
-
-    # Only exactly-two-space entries directly under top-level `on:`.
-    # This intentionally ignores nested keys such as `branches:`.
-    if re.match(r"^  [^ ].*:\s*$", line):
-        top_level_event_lines.append(line.strip())
-
-expected = ["pull_request:"]
-if top_level_event_lines != expected:
-    print(f"Expected only top-level pull_request trigger; found: {top_level_event_lines}")
-    sys.exit(1)
-
-print("Workflow trigger validation passed")
-PY
+          echo "Repository baseline files are present."

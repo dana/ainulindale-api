@@ -42,19 +42,37 @@ jobs:
 
           workflow=".github/workflows/repository-baseline.yml"
 
-          grep -q '^on:' "$workflow"
-          grep -q 'pull_request:' "$workflow"
+          python3 - <<'PY'
+from pathlib import Path
+import sys
 
-          forbidden_triggers=(
-            'pull_request_target:'
-            'push:'
-            'workflow_dispatch:'
-            'workflow_run:'
-          )
+workflow = Path(".github/workflows/repository-baseline.yml")
+text = workflow.read_text()
 
-          for trigger in "${forbidden_triggers[@]}"; do
-            if grep -q "$trigger" "$workflow"; then
-              echo "Forbidden trigger found: $trigger"
-              exit 1
-            fi
-          done
+lines = text.splitlines()
+
+# This intentionally performs a narrow textual check against the actual
+# top-level trigger declaration instead of grepping arbitrary strings in
+# the script body.
+try:
+    on_index = next(i for i, line in enumerate(lines) if line == "on:")
+except StopIteration:
+    print("Missing top-level 'on:' declaration")
+    sys.exit(1)
+
+trigger_lines = []
+for line in lines[on_index + 1:]:
+    if line and not line.startswith(" "):
+        break
+    if line.startswith("  ") and line.strip().endswith(":"):
+        trigger_lines.append(line.strip())
+
+allowed = {"pull_request:"}
+actual = set(trigger_lines)
+
+if actual != allowed:
+    print(f"Expected only pull_request trigger; found: {sorted(actual)}")
+    sys.exit(1)
+
+print("Workflow trigger validation passed")
+PY

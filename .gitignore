@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments and local config
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Editors and OS files
+*~
+*.swp
+.DS_Store
+
+# Local secrets and credentials
+*.pem
+*.key
+*.crt
+*.kubeconfig
+kubeconfig

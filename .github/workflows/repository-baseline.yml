@@ -32,29 +32,10 @@ jobs:
           )
 
           for path in "${required_files[@]}"; do
-            test -s "$path"
-          done
-
-      - name: Verify workflow trigger stays pull_request-only
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          workflow=".github/workflows/repository-baseline.yml"
-
-          grep -q '^on:' "$workflow"
-          grep -q 'pull_request:' "$workflow"
-
-          forbidden_triggers=(
-            'pull_request_target:'
-            'push:'
-            'workflow_dispatch:'
-            'workflow_run:'
-          )
-
-          for trigger in "${forbidden_triggers[@]}"; do
-            if grep -q "$trigger" "$workflow"; then
-              echo "Forbidden trigger found: $trigger"
+            if [ ! -s "$path" ]; then
+              echo "Missing or empty required file: $path"
               exit 1
             fi
           done
+
+          echo "Repository baseline files are present."

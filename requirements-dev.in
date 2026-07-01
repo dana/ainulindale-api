@@ -1,0 +1,7 @@
+pytest
+pytest-cov
+httpx
+ruff
+bandit[toml]
+pip-audit
+

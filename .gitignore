@@ -13,6 +13,7 @@ build/
 
 # Virtual environments and local config
 .venv/
+.venv-*/
 venv/
 .env
 .env.*
@@ -29,3 +30,8 @@ venv/
 *.crt
 *.kubeconfig
 kubeconfig
+
+reports/
+
+.tmp-home-*/
+

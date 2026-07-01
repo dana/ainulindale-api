@@ -56,17 +56,20 @@ def create_app() -> FastAPI:
         is_public_application_path = request.url.path.startswith(f"{API_V1_PREFIX}/")
         method_can_have_json_body = request.method in JSON_BODY_METHODS
 
-        if is_public_application_path and method_can_have_json_body:
-            if _media_type(request.headers.get("content-type")) != "application/json":
-                return JSONResponse(
-                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                    content={
-                        "detail": (
-                            "Public application endpoints with request bodies require "
-                            "Content-Type: application/json"
-                        )
-                    },
-                )
+        if (
+            is_public_application_path
+            and method_can_have_json_body
+            and _media_type(request.headers.get("content-type")) != "application/json"
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                content={
+                    "detail": (
+                        "Public application endpoints with request bodies require "
+                        "Content-Type: application/json"
+                    )
+                },
+            )
 
         return await call_next(request)
 

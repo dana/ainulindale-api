@@ -1,4 +1,4 @@
-.PHONY: dev test lint run smoke restart-check check clean
+.PHONY: dev test lint run smoke restart-check check clean image-build image-metadata-compare container-smoke image-smoke
 
 dev:
 	python3 -m venv .venv
@@ -25,3 +25,14 @@ check: lint test smoke restart-check
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info build dist
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+image-build:
+	scripts/build-image-local.sh
+
+image-metadata-compare:
+	scripts/image-metadata-compare.sh
+
+container-smoke:
+	scripts/container-smoke.sh
+
+image-smoke: image-metadata-compare container-smoke

@@ -1,0 +1,151 @@
+name: PR CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions: {}
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: quality-gate
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: arc-ainulindale-api
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out PR head commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install Ubuntu CI tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            gcc \
+            jq \
+            python3 \
+            python3-dev \
+            python3-pip \
+            python3-venv
+
+      - name: Create virtual environment and install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.lock
+          python -m pip install -e .
+
+      - name: Run tests, linting, formatting check, and scans
+        shell: bash
+        run: |
+          set -euo pipefail
+          . .venv/bin/activate
+          scripts/quality-gate.sh
+
+      - name: Summarize quality reports
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Quality gate reports'
+            echo
+            if [ -d reports ]; then
+              find reports -maxdepth 1 -type f -printf '- `%p`\n' | sort
+            else
+              echo 'No reports directory was created.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-and-push:
+    name: build-and-push
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: arc-ainulindale-api-dind
+    needs: quality-gate
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out PR head commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install Ubuntu image tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            docker.io \
+            jq
+
+          docker version
+          docker info
+
+      - name: Build and push GHCR image tagged with PR head SHA
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          case "$HEAD_SHA" in
+            *[!0-9a-f]*|'')
+              echo "Unexpected PR head SHA: $HEAD_SHA" >&2
+              exit 1
+              ;;
+          esac
+
+          IMAGE_REPO="ghcr.io/${GITHUB_REPOSITORY,,}"
+          IMAGE="${IMAGE_REPO}:${HEAD_SHA}"
+          SOURCE_URL="https://github.com/${GITHUB_REPOSITORY}"
+
+          printf '%s' "$GHCR_TOKEN" \
+            | docker login --username "$GITHUB_ACTOR" --password-stdin ghcr.io >/dev/null
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+          docker build \
+            --pull \
+            --label "org.opencontainers.image.title=ainulindale-api" \
+            --label "org.opencontainers.image.source=${SOURCE_URL}" \
+            --label "org.opencontainers.image.revision=${HEAD_SHA}" \
+            --label "org.opencontainers.image.created=github-actions" \
+            -f Containerfile \
+            -t "$IMAGE" \
+            .
+
+          docker push "$IMAGE"
+
+          {
+            echo '## Pushed image'
+            echo
+            echo "\`$IMAGE\`"
+          } >> "$GITHUB_STEP_SUMMARY"

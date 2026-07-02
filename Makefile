@@ -36,3 +36,8 @@ container-smoke:
 	scripts/container-smoke.sh
 
 image-smoke: image-metadata-compare container-smoke
+
+.PHONY: validate-pr-ci-workflow
+validate-pr-ci-workflow:
+	scripts/validate-pr-ci-workflow.sh
+

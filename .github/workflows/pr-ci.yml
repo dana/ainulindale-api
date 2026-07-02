@@ -128,11 +128,24 @@ jobs:
           IMAGE="${IMAGE_REPO}:${HEAD_SHA}"
           SOURCE_URL="https://github.com/${GITHUB_REPOSITORY}"
 
-          printf '%s' "$GHCR_TOKEN" \
-            | sudo buildah login --username "$GITHUB_ACTOR" --password-stdin ghcr.io >/dev/null
-          trap 'sudo buildah logout ghcr.io >/dev/null 2>&1 || true' EXIT
+          BUILD_ROOT="${RUNNER_TEMP:-/tmp}/buildah-root"
+          BUILD_RUNROOT="${RUNNER_TEMP:-/tmp}/buildah-runroot"
 
-          sudo buildah bud \
+          sudo rm -rf "$BUILD_ROOT" "$BUILD_RUNROOT"
+          sudo mkdir -p "$BUILD_ROOT" "$BUILD_RUNROOT"
+
+          BUILDAH_ARGS=(
+            --storage-driver=vfs
+            --root "$BUILD_ROOT"
+            --runroot "$BUILD_RUNROOT"
+          )
+
+          printf '%s' "$GHCR_TOKEN" \
+            | sudo buildah "${BUILDAH_ARGS[@]}" login --username "$GITHUB_ACTOR" --password-stdin ghcr.io >/dev/null
+          trap 'sudo buildah "${BUILDAH_ARGS[@]}" logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+          sudo buildah "${BUILDAH_ARGS[@]}" bud \
+            --isolation=chroot \
             --format oci \
             --pull=missing \
             --label "org.opencontainers.image.title=ainulindale-api" \
@@ -143,7 +156,7 @@ jobs:
             -t "$IMAGE" \
             .
 
-          sudo buildah push "$IMAGE" "docker://${IMAGE}"
+          sudo buildah "${BUILDAH_ARGS[@]}" push "$IMAGE" "docker://${IMAGE}"
 
           {
             echo '## Pushed image'

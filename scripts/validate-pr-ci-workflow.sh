@@ -25,8 +25,11 @@ grep -q '^      packages: write$' "$workflow"
 grep -q 'github.event.pull_request.head.sha' "$workflow"
 grep -q 'github.event.pull_request.head.repo.full_name == github.repository' "$workflow"
 grep -q 'scripts/quality-gate.sh' "$workflow"
-grep -q 'buildah bud' "$workflow"
-grep -q 'buildah push' "$workflow"
+grep -q 'BUILDAH_ARGS' "$workflow"
+grep -q -- '--storage-driver=vfs' "$workflow"
+grep -q -- '--isolation=chroot' "$workflow"
+grep -q 'buildah "${BUILDAH_ARGS\[@\]}" bud' "$workflow"
+grep -q 'buildah "${BUILDAH_ARGS\[@\]}" push' "$workflow"
 grep -q 'GHCR_TOKEN: \${{ github.token }}' "$workflow"
 
 if grep -q 'pull_request_target' "$workflow"; then

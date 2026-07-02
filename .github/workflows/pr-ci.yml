@@ -82,7 +82,7 @@ jobs:
   build-and-push:
     name: build-and-push
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: arc-ainulindale-api
+    runs-on: arc-ainulindale-api-dind
     needs: quality-gate
     timeout-minutes: 20
     permissions:
@@ -102,12 +102,12 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            buildah \
             ca-certificates \
-            fuse-overlayfs \
-            jq \
-            skopeo \
-            uidmap
+            docker.io \
+            jq
+
+          docker version
+          docker info
 
       - name: Build and push GHCR image tagged with PR head SHA
         shell: bash
@@ -128,26 +128,12 @@ jobs:
           IMAGE="${IMAGE_REPO}:${HEAD_SHA}"
           SOURCE_URL="https://github.com/${GITHUB_REPOSITORY}"
 
-          BUILD_ROOT="${RUNNER_TEMP:-/tmp}/buildah-root"
-          BUILD_RUNROOT="${RUNNER_TEMP:-/tmp}/buildah-runroot"
-
-          sudo rm -rf "$BUILD_ROOT" "$BUILD_RUNROOT"
-          sudo mkdir -p "$BUILD_ROOT" "$BUILD_RUNROOT"
-
-          BUILDAH_ARGS=(
-            --storage-driver=vfs
-            --root "$BUILD_ROOT"
-            --runroot "$BUILD_RUNROOT"
-          )
-
           printf '%s' "$GHCR_TOKEN" \
-            | sudo buildah "${BUILDAH_ARGS[@]}" login --username "$GITHUB_ACTOR" --password-stdin ghcr.io >/dev/null
-          trap 'sudo buildah "${BUILDAH_ARGS[@]}" logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            | docker login --username "$GITHUB_ACTOR" --password-stdin ghcr.io >/dev/null
+          trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
 
-          sudo buildah "${BUILDAH_ARGS[@]}" bud \
-            --isolation=chroot \
-            --format oci \
-            --pull=missing \
+          docker build \
+            --pull \
             --label "org.opencontainers.image.title=ainulindale-api" \
             --label "org.opencontainers.image.source=${SOURCE_URL}" \
             --label "org.opencontainers.image.revision=${HEAD_SHA}" \
@@ -156,7 +142,7 @@ jobs:
             -t "$IMAGE" \
             .
 
-          sudo buildah "${BUILDAH_ARGS[@]}" push "$IMAGE" "docker://${IMAGE}"
+          docker push "$IMAGE"
 
           {
             echo '## Pushed image'

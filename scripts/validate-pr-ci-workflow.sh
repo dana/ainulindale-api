@@ -25,11 +25,12 @@ grep -q '^      packages: write$' "$workflow"
 grep -q 'github.event.pull_request.head.sha' "$workflow"
 grep -q 'github.event.pull_request.head.repo.full_name == github.repository' "$workflow"
 grep -q 'scripts/quality-gate.sh' "$workflow"
-grep -q 'BUILDAH_ARGS' "$workflow"
-grep -q -- '--storage-driver=vfs' "$workflow"
-grep -q -- '--isolation=chroot' "$workflow"
-grep -q 'buildah "${BUILDAH_ARGS\[@\]}" bud' "$workflow"
-grep -q 'buildah "${BUILDAH_ARGS\[@\]}" push' "$workflow"
+grep -q '^    runs-on: arc-ainulindale-api-dind$' "$workflow"
+grep -q 'docker.io' "$workflow"
+grep -q 'docker info' "$workflow"
+grep -q 'docker login' "$workflow"
+grep -q 'docker build' "$workflow"
+grep -q 'docker push "$IMAGE"' "$workflow"
 grep -q 'GHCR_TOKEN: \${{ github.token }}' "$workflow"
 
 if grep -q 'pull_request_target' "$workflow"; then
@@ -44,6 +45,11 @@ fi
 
 if grep -q 'secrets\.' "$workflow"; then
   echo "FAIL: do not reference user-defined secrets; use github.token only" >&2
+  exit 1
+fi
+
+if grep -qE '\bbuildah\b|\bskopeo\b|fuse-overlayfs|uidmap' "$workflow"; then
+  echo "FAIL: image job should use the dedicated DIND runner and Docker, not native Buildah in the default runner pod" >&2
   exit 1
 fi
 

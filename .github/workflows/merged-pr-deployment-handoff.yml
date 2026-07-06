@@ -1,0 +1,236 @@
+name: Merged PR Deployment Handoff
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+permissions: {}
+
+concurrency:
+  group: merged-pr-deployment-handoff-main
+  cancel-in-progress: false
+
+jobs:
+  deployment-handoff:
+    name: deployment-handoff
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: arc-ainulindale-api
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_HTML_URL: ${{ github.event.pull_request.html_url }}
+      INFRA_REPO: dana/ainulindale-infra
+      INFRA_PATH: apps/ainulindale-api/overlays/prod
+
+    steps:
+      - name: Validate merged PR event
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test "${GITHUB_EVENT_NAME:-}" = "pull_request"
+
+          if ! [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unexpected PR head SHA: $HEAD_SHA" >&2
+            exit 1
+          fi
+
+          {
+            echo "## Deployment handoff input"
+            echo
+            echo "- Source repository: \`${GITHUB_REPOSITORY}\`"
+            echo "- Source PR: ${PR_HTML_URL}"
+            echo "- Source PR number: \`${PR_NUMBER}\`"
+            echo "- PR head SHA: \`${HEAD_SHA}\`"
+            echo "- Infra repository: \`${INFRA_REPO}\`"
+            echo "- Infra path: \`${INFRA_PATH}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install handoff tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            gzip \
+            jq \
+            skopeo \
+            tar
+
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+
+          curl -fsSLo "$tmpdir/install_kustomize.sh" \
+            https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh
+
+          bash "$tmpdir/install_kustomize.sh" 5.8.1 "$tmpdir"
+          sudo install -m 0755 "$tmpdir/kustomize" /usr/local/bin/kustomize
+
+          skopeo --version
+          git --version
+          jq --version
+          kustomize version
+
+      - name: Retag already-built GHCR image as main alias
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          image_repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source_ref="docker://${image_repo}:${HEAD_SHA}"
+          main_ref="docker://${image_repo}:main"
+          authfile="${RUNNER_TEMP}/ghcr-auth.json"
+
+          trap 'rm -f "$authfile"' EXIT
+
+          printf '%s' "$GHCR_TOKEN" \
+            | skopeo login \
+                --authfile "$authfile" \
+                --username "$GITHUB_ACTOR" \
+                --password-stdin \
+                ghcr.io >/dev/null
+
+          skopeo inspect --authfile "$authfile" "$source_ref" \
+            > "${RUNNER_TEMP}/source-image.json"
+
+          skopeo copy --authfile "$authfile" "$source_ref" "$main_ref"
+
+          skopeo inspect --authfile "$authfile" "$main_ref" \
+            > "${RUNNER_TEMP}/main-image.json"
+
+          source_digest="$(jq -r '.Digest' "${RUNNER_TEMP}/source-image.json")"
+          main_digest="$(jq -r '.Digest' "${RUNNER_TEMP}/main-image.json")"
+
+          if [ "$source_digest" != "$main_digest" ]; then
+            echo "FAIL: :main digest does not match source SHA tag" >&2
+            echo "source=$source_digest" >&2
+            echo "main=$main_digest" >&2
+            exit 1
+          fi
+
+          {
+            echo
+            echo "## GHCR retag"
+            echo
+            echo "- Source image: \`${image_repo}:${HEAD_SHA}\`"
+            echo "- Convenience alias: \`${image_repo}:main\`"
+            echo "- Digest: \`${source_digest}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit PR head SHA to infra repo
+        shell: bash
+        env:
+          INFRA_REPO_TOKEN: ${{ secrets.AINULINDALE_INFRA_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${INFRA_REPO_TOKEN:-}" ]; then
+            echo "FAIL: AINULINDALE_INFRA_DEPLOY_TOKEN is not available" >&2
+            exit 1
+          fi
+
+          workdir="$(mktemp -d)"
+          askpass="$workdir/git-askpass.sh"
+          trap 'rm -rf "$workdir"' EXIT
+
+          cat > "$askpass" <<'SH'
+          #!/usr/bin/env sh
+          case "$1" in
+            *Username*) printf '%s\n' 'x-access-token' ;;
+            *Password*) printf '%s\n' "$INFRA_REPO_TOKEN" ;;
+            *) printf '\n' ;;
+          esac
+          SH
+          chmod 0700 "$askpass"
+
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=0
+
+          git clone --depth 1 --branch main \
+            "https://github.com/${INFRA_REPO}.git" \
+            "$workdir/infra"
+
+          cd "$workdir/infra"
+
+          git config user.name "ainulindale-deployment-handoff"
+          git config user.email "ainulindale-deployment-handoff@users.noreply.github.com"
+
+          cd "$INFRA_PATH"
+
+          kustomize edit set image \
+            "ghcr.io/dana/ainulindale-api=ghcr.io/dana/ainulindale-api:${HEAD_SHA}"
+
+          cd "$workdir/infra"
+
+          changed_files="$(git diff --name-only)"
+
+          if [ -z "$changed_files" ]; then
+            {
+              echo
+              echo "## Infra update"
+              echo
+              echo "No infra change was required; \`${INFRA_PATH}/kustomization.yaml\` already used \`${HEAD_SHA}\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          expected_file="${INFRA_PATH}/kustomization.yaml"
+
+          if [ "$changed_files" != "$expected_file" ]; then
+            echo "FAIL: unexpected infra files changed:" >&2
+            printf '%s\n' "$changed_files" >&2
+            exit 1
+          fi
+
+          if ! grep -Eq "newTag:[[:space:]]+${HEAD_SHA}$" "$expected_file"; then
+            echo "FAIL: expected newTag ${HEAD_SHA} in $expected_file" >&2
+            sed -n '1,120p' "$expected_file" >&2
+            exit 1
+          fi
+
+          rendered="${RUNNER_TEMP}/ainulindale-api-rendered.yaml"
+          kustomize build "$INFRA_PATH" > "$rendered"
+
+          grep -q "image: ghcr.io/dana/ainulindale-api:${HEAD_SHA}" "$rendered"
+
+          if grep -q "image: ghcr.io/dana/ainulindale-api:main" "$rendered"; then
+            echo "FAIL: rendered manifests deploy :main instead of the immutable PR head SHA" >&2
+            exit 1
+          fi
+
+          git add "$expected_file"
+          git diff --cached --check
+
+          git commit \
+            -m "Deploy ainulindale-api ${HEAD_SHA}" \
+            -m "Source PR: ${PR_HTML_URL}" \
+            -m "Source PR number: ${PR_NUMBER}" \
+            -m "Image tag: ghcr.io/dana/ainulindale-api:${HEAD_SHA}" \
+            -m "The :main tag is only a GHCR convenience alias; Argo CD deploys this immutable PR head SHA."
+
+          git push origin HEAD:main
+
+          infra_commit="$(git rev-parse HEAD)"
+
+          {
+            echo
+            echo "## Infra update"
+            echo
+            echo "- Changed file: \`${expected_file}\`"
+            echo "- Image tag committed: \`${HEAD_SHA}\`"
+            echo "- Infra commit: \`${infra_commit}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

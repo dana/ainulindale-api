@@ -41,3 +41,6 @@ image-smoke: image-metadata-compare container-smoke
 validate-pr-ci-workflow:
 	scripts/validate-pr-ci-workflow.sh
 
+.PHONY: validate-merged-pr-deployment-handoff-workflow
+validate-merged-pr-deployment-handoff-workflow:
+	scripts/validate-merged-pr-deployment-handoff-workflow.sh

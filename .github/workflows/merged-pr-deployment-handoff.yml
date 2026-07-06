@@ -225,9 +225,70 @@ jobs:
             -m "Image tag: ghcr.io/dana/ainulindale-api:${HEAD_SHA}" \
             -m "The :main tag is only a GHCR convenience alias; Argo CD deploys this immutable PR head SHA."
 
-          git push origin HEAD:main
+          deploy_branch="deployment-handoff/ainulindale-api-${HEAD_SHA}"
+
+          git push origin "HEAD:refs/heads/${deploy_branch}"
 
           infra_commit="$(git rev-parse HEAD)"
+          infra_owner="${INFRA_REPO%%/*}"
+          api_root="https://api.github.com/repos/${INFRA_REPO}"
+
+          existing_pr="$(
+            curl -fsS               -H "Authorization: Bearer ${INFRA_REPO_TOKEN}"               -H "Accept: application/vnd.github+json"               -H "X-GitHub-Api-Version: 2022-11-28"               --get               --data-urlencode "state=open"               --data-urlencode "base=main"               --data-urlencode "head=${infra_owner}:${deploy_branch}"               "${api_root}/pulls"
+          )"
+
+          infra_pr_number="$(jq -r '.[0].number // empty' <<<"$existing_pr")"
+          infra_pr_url="$(jq -r '.[0].html_url // empty' <<<"$existing_pr")"
+
+          if [ -z "$infra_pr_number" ]; then
+            pr_payload="$(
+              jq -n                 --arg title "Deploy ainulindale-api ${HEAD_SHA}"                 --arg head "$deploy_branch"                 --arg base "main"                 --arg body "Source PR: ${PR_HTML_URL}\n\nImage tag: ghcr.io/dana/ainulindale-api:${HEAD_SHA}\n\nThe :main tag is only a GHCR convenience alias; Argo CD deploys this immutable PR head SHA."                 '{title:$title, head:$head, base:$base, body:$body, maintainer_can_modify:false}'
+            )"
+
+            pr_response="$(
+              curl -fsS                 -X POST                 -H "Authorization: Bearer ${INFRA_REPO_TOKEN}"                 -H "Accept: application/vnd.github+json"                 -H "X-GitHub-Api-Version: 2022-11-28"                 "${api_root}/pulls"                 -d "$pr_payload"
+            )"
+
+            infra_pr_number="$(jq -r '.number' <<<"$pr_response")"
+            infra_pr_url="$(jq -r '.html_url' <<<"$pr_response")"
+          fi
+
+          if ! [[ "$infra_pr_number" =~ ^[0-9]+$ ]]; then
+            echo "FAIL: could not determine infra PR number" >&2
+            echo "existing_pr=$existing_pr" >&2
+            exit 1
+          fi
+
+          echo "Infra PR: ${infra_pr_url}"
+
+          merge_payload="$(
+            jq -n               --arg commit_title "Deploy ainulindale-api ${HEAD_SHA}"               --arg commit_message "Source PR: ${PR_HTML_URL}\nImage tag: ghcr.io/dana/ainulindale-api:${HEAD_SHA}"               '{commit_title:$commit_title, commit_message:$commit_message, merge_method:"squash"}'
+          )"
+
+          merged="false"
+
+          for attempt in $(seq 1 40); do
+            echo "Attempting to merge infra PR #${infra_pr_number}, attempt ${attempt}..."
+
+            http_code="$(
+              curl -sS                 -o "${workdir}/merge-response.json"                 -w "%{http_code}"                 -X PUT                 -H "Authorization: Bearer ${INFRA_REPO_TOKEN}"                 -H "Accept: application/vnd.github+json"                 -H "X-GitHub-Api-Version: 2022-11-28"                 "${api_root}/pulls/${infra_pr_number}/merge"                 -d "$merge_payload"
+            )"
+
+            cat "${workdir}/merge-response.json"
+            echo
+
+            if [ "$http_code" = "200" ]; then
+              merged="true"
+              break
+            fi
+
+            sleep 15
+          done
+
+          if [ "$merged" != "true" ]; then
+            echo "FAIL: infra PR #${infra_pr_number} did not merge after required checks window" >&2
+            exit 1
+          fi
 
           {
             echo
@@ -235,5 +296,7 @@ jobs:
             echo
             echo "- Changed file: \`${expected_file}\`"
             echo "- Image tag committed: \`${HEAD_SHA}\`"
+            echo "- Infra branch: \`${deploy_branch}\`"
+            echo "- Infra PR: ${infra_pr_url}"
             echo "- Infra commit: \`${infra_commit}\`"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -37,7 +37,10 @@ grep -q 'docker://.*:main' "$workflow"
 grep -q 'kustomize edit set image' "$workflow"
 grep -q 'ghcr.io/dana/ainulindale-api.*HEAD_SHA' "$workflow"
 grep -q 'git clone --depth 1 --branch main' "$workflow"
-grep -q 'git push origin HEAD:main' "$workflow"
+grep -q 'git push origin "HEAD:refs/heads/${deploy_branch}"' "$workflow"
+grep -q 'api.github.com/repos/${INFRA_REPO}' "$workflow"
+grep -q '/pulls' "$workflow"
+grep -q '/merge' "$workflow"
 grep -q 'secrets.AINULINDALE_INFRA_DEPLOY_TOKEN' "$workflow"
 
 # Forbid dangerous or unintended GitHub Actions triggers.

@@ -136,10 +136,75 @@ def test_openapi_advertises_only_intended_paths() -> None:
         "/healthz",
         "/readyz",
         "/api/v1/echo",
+        "/api/v1/happy-path",
     }
     assert set(schema["paths"]["/api/v1/echo"].keys()) == {"post"}
+    assert set(schema["paths"]["/api/v1/happy-path"].keys()) == {"post"}
     assert "/" not in schema["paths"]
     assert "/api" not in schema["paths"]
     assert "/api/v1" not in schema["paths"]
     assert "/docs" not in schema["paths"]
     assert "/redoc" not in schema["paths"]
+
+
+def test_happy_path_endpoint_accepts_json_and_returns_json() -> None:
+    response = client.post("/api/v1/happy-path", json={"message": "chunk 11"})
+
+    assert response.status_code == 200
+    assert assert_json_response(response) == {
+        "message": "chunk 11",
+        "proof": "chunk-11-happy-path",
+        "length": 8,
+    }
+
+
+def test_happy_path_endpoint_rejects_missing_content_type_with_json_error() -> None:
+    response = client.post(
+        "/api/v1/happy-path",
+        content='{"message":"chunk 11"}',
+    )
+
+    assert response.status_code == 415
+    assert_json_response(response)
+
+
+def test_happy_path_endpoint_rejects_wrong_content_type_with_json_error() -> None:
+    response = client.post(
+        "/api/v1/happy-path",
+        content='{"message":"chunk 11"}',
+        headers={"Content-Type": "text/plain"},
+    )
+
+    assert response.status_code == 415
+    assert_json_response(response)
+
+
+def test_happy_path_endpoint_rejects_invalid_json_with_json_error() -> None:
+    response = client.post(
+        "/api/v1/happy-path",
+        content='{"message":',
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 422
+    body = assert_json_response(response)
+    assert "detail" in body
+
+
+def test_happy_path_endpoint_rejects_empty_message() -> None:
+    response = client.post("/api/v1/happy-path", json={"message": ""})
+
+    assert response.status_code == 422
+    body = assert_json_response(response)
+    assert "detail" in body
+
+
+def test_happy_path_endpoint_rejects_unexpected_fields() -> None:
+    response = client.post(
+        "/api/v1/happy-path",
+        json={"message": "chunk 11", "unexpected": True},
+    )
+
+    assert response.status_code == 422
+    body = assert_json_response(response)
+    assert "detail" in body

@@ -162,7 +162,7 @@ with open(path, "r", encoding="utf-8") as handle:
     spec = json.load(handle)
 
 paths = set(spec.get("paths", {}))
-required = {"/healthz", "/readyz", "/api/v1/echo"}
+required = {"/healthz", "/readyz", "/api/v1/echo", "/api/v1/happy-path"}
 missing = required - paths
 
 if missing:

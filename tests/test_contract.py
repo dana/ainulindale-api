@@ -137,9 +137,11 @@ def test_openapi_advertises_only_intended_paths() -> None:
         "/readyz",
         "/api/v1/echo",
         "/api/v1/happy-path",
+        "/api/v1/happy",
     }
     assert set(schema["paths"]["/api/v1/echo"].keys()) == {"post"}
     assert set(schema["paths"]["/api/v1/happy-path"].keys()) == {"post"}
+    assert set(schema["paths"]["/api/v1/happy"].keys()) == {"get"}
     assert "/" not in schema["paths"]
     assert "/api" not in schema["paths"]
     assert "/api/v1" not in schema["paths"]
@@ -208,3 +210,16 @@ def test_happy_path_endpoint_rejects_unexpected_fields() -> None:
     assert response.status_code == 422
     body = assert_json_response(response)
     assert "detail" in body
+
+
+def test_happy_endpoint_returns_json() -> None:
+    response = client.get("/api/v1/happy")
+
+    assert response.status_code == 200
+    body = assert_json_response(response)
+    assert "system_time_utc" in body
+    assert isinstance(body["system_time_utc"], str)
+    assert "load_average" in body
+    assert isinstance(body["load_average"]["one_minute"], float)
+    assert isinstance(body["load_average"]["five_minutes"], float)
+    assert isinstance(body["load_average"]["fifteen_minutes"], float)

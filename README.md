@@ -2,6 +2,10 @@
 
 Minimal FastAPI API service.
 
+## Endpoints
+
+- `GET /api/v1/happy`: Returns current UTC system time and system load averages.
+
 ## Local development
 
 ```bash

@@ -147,6 +147,12 @@ assert_json_content_type root_not_found
 assert_json_body root_not_found
 pass root_not_found
 
+code="$(request happy GET /api/v1/happy)"
+assert_status happy "$code" 200
+assert_json_content_type happy
+assert_json_body happy
+pass happy
+
 code="$(request openapi GET /openapi.json)"
 assert_status openapi "$code" 200
 assert_json_content_type openapi
@@ -162,7 +168,7 @@ with open(path, "r", encoding="utf-8") as handle:
     spec = json.load(handle)
 
 paths = set(spec.get("paths", {}))
-required = {"/healthz", "/readyz", "/api/v1/echo", "/api/v1/happy-path"}
+required = {"/healthz", "/readyz", "/api/v1/echo", "/api/v1/happy-path", "/api/v1/happy"}
 missing = required - paths
 
 if missing:

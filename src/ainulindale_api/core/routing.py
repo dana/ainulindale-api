@@ -16,10 +16,12 @@ async def enforce_public_json_request_contract(
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     is_public_application_path = request.url.path.startswith(f"{API_V1_PREFIX}/")
+    is_upload_path = request.url.path.endswith("/upload")
     method_can_have_json_body = request.method in JSON_BODY_METHODS
 
     if (
         is_public_application_path
+        and not is_upload_path
         and method_can_have_json_body
         and _media_type(request.headers.get("content-type")) != "application/json"
     ):

@@ -138,6 +138,9 @@ def test_openapi_advertises_only_intended_paths() -> None:
         "/api/v1/echo",
         "/api/v1/happy-path",
         "/api/v1/happy",
+        "/api/v1/eridian-echo/upload",
+        "/api/v1/eridian-echo/jobs",
+        "/api/v1/eridian-echo/jobs/{job_id}",
     }
     assert set(schema["paths"]["/api/v1/echo"].keys()) == {"post"}
     assert set(schema["paths"]["/api/v1/happy-path"].keys()) == {"post"}

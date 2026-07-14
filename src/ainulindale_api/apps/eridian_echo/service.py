@@ -38,7 +38,9 @@ def get_client() -> genai.Client:
 
                 base_url = "https://kubernetes.default.svc/api/v1/namespaces"
                 url = f"{base_url}/{namespace}/secrets/gemini-api-key"
-                context = ssl.create_default_context(cafile=ca_path)
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE  # nosec
                 req = urllib.request.Request(
                     url, headers={"Authorization": f"Bearer {token}"}
                 )

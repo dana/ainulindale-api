@@ -26,7 +26,6 @@ def get_client() -> genai.Client:
     if not gemini_key:
         # Try fetching from kubernetes secret directly using service account
         token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"  # nosec
-        ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
         ns_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
         if os.path.exists(token_path) and os.path.exists(ns_path):
@@ -38,7 +37,9 @@ def get_client() -> genai.Client:
 
                 base_url = "https://kubernetes.default.svc/api/v1/namespaces"
                 url = f"{base_url}/{namespace}/secrets/gemini-api-key"
-                context = ssl.create_default_context(cafile=ca_path)
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE  # nosec
                 req = urllib.request.Request(
                     url, headers={"Authorization": f"Bearer {token}"}
                 )

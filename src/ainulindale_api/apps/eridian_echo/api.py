@@ -78,12 +78,10 @@ async def upload_audio(
         ) from None
 
     # Create job in database
-    job_id = str(uuid.uuid4())
-    job = models.Job(id=job_id, owner_id=owner_id, filename=file.filename)
-    await models.create_job(job)
+    job = await models.create_job(owner_id=owner_id, filename=file.filename)
 
     # Start background task
-    background_tasks.add_task(service.transcribe_mp3, job_id, temp_filepath)
+    background_tasks.add_task(service.transcribe_mp3, job.id, temp_filepath)
 
     return JobResponse.from_job(job)
 

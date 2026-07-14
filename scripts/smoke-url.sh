@@ -184,4 +184,12 @@ if unexpected_public:
 PY
 pass "openapi intended paths only"
 
+code="$(request eridian_echo_page GET /eridian-echo/)"
+assert_status eridian_echo_page "$code" 200
+pass eridian_echo_page
+
+code="$(request eridian_echo_css GET /assets/eridian-echo/eridian-echo.css)"
+assert_status eridian_echo_css "$code" 200
+pass eridian_echo_css
+
 echo "smoke-url passed for ${BASE_URL}"

@@ -1,0 +1,216 @@
+/* Global Reset and Variables */
+:root {
+    --text-primary: #3d2b1f; /* Dark brown for text on wood */
+    --text-secondary: #5c4033;
+    --wood-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 2px 5px rgba(255, 255, 255, 0.2);
+    --button-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.3);
+    --font-heading: 'Merriweather', serif;
+    --font-mono: 'Space Mono', monospace;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+/* Photorealistic Nature Backdrop */
+body {
+    background-image: url('/assets/eridian-echo/forest.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to bottom, rgba(200, 215, 225, 0.2), rgba(30, 40, 50, 0.5));
+    z-index: -1;
+}
+
+/* The Workbench */
+.workbench {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    position: relative;
+}
+
+/* Wooden Panels (Cards) */
+.wood-panel {
+    background-image: url('/assets/eridian-echo/wood.jpg');
+    background-size: cover;
+    background-blend-mode: multiply;
+    background-color: rgba(220, 180, 140, 0.8);
+    border-radius: 4px;
+    padding: 30px;
+    box-shadow: var(--wood-shadow);
+    border: 1px solid rgba(100, 60, 30, 0.6);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 3px solid rgba(50, 30, 15, 0.8);
+    position: relative;
+}
+
+/* Typography */
+h1, h2, h3 {
+    margin-top: 0;
+    color: #2b1d12;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+}
+
+p {
+    line-height: 1.6;
+}
+
+.disclaimer {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.85em;
+    font-style: italic;
+    color: #6a4a35;
+}
+
+/* Dropzone */
+.dropzone-panel {
+    text-align: center;
+    border: 3px dashed rgba(100, 60, 30, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dropzone-panel.dragover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #2b1d12;
+}
+
+.wood-button {
+    background-image: url('/assets/eridian-echo/wood.jpg');
+    background-size: cover;
+    background-color: rgba(180, 120, 80, 0.9);
+    background-blend-mode: multiply;
+    color: #ffe6cc;
+    border: 1px solid #4a2e1b;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-bottom: 2px solid #2b1d12;
+    padding: 10px 20px;
+    font-family: var(--font-heading);
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    box-shadow: var(--button-shadow);
+    text-shadow: 0 -1px 1px rgba(0,0,0,0.6);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.wood-button:hover {
+    filter: brightness(1.1);
+}
+
+.wood-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 2px 4px rgba(0,0,0,0.6);
+    border-bottom-width: 1px;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 15px;
+    background-color: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    margin-top: 15px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    width: 0%;
+    transition: width 0.2s ease-out;
+}
+
+/* Jobs Grid */
+.jobs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.job-card {
+    padding: 20px;
+}
+
+.job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(100, 60, 30, 0.3);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.status-badge {
+    background-color: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.status-queued { color: #ffd54f; }
+.status-processing { color: #64b5f6; }
+.status-succeeded { color: #81c784; }
+.status-failed { color: #e57373; }
+
+.transcript-content {
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    background-color: rgba(255, 255, 255, 0.6);
+    padding: 15px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.95em;
+    color: #222;
+}
+
+.error-text {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+/* Rocky Easter Egg */
+.easter-egg {
+    position: absolute;
+    bottom: -30px;
+    right: 20px;
+    width: 120px;
+    height: auto;
+    z-index: 10;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+    opacity: 0.9;
+    transform: rotate(5deg);
+    transition: transform 0.3s;
+}
+
+.easter-egg:hover {
+    transform: rotate(0deg) scale(1.05);
+}

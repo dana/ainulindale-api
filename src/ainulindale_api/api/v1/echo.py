@@ -6,23 +6,29 @@ class EchoRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(..., min_length=1, max_length=200)
 
+
 class EchoResponse(BaseModel):
     message: str
     length: int
 
+
 class HappyPathRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(..., min_length=1, max_length=200)
+
 
 class HappyPathResponse(BaseModel):
     message: str
     proof: str
     length: int
 
+
 class ContractErrorResponse(BaseModel):
     detail: str
 
+
 router = APIRouter()
+
 
 @router.post(
     "/echo",
@@ -36,6 +42,7 @@ router = APIRouter()
 )
 def echo(payload: EchoRequest) -> EchoResponse:
     return EchoResponse(message=payload.message, length=len(payload.message))
+
 
 @router.post(
     "/happy-path",

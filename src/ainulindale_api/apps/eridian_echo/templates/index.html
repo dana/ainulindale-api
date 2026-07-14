@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eridian Echo</title>
+    <link rel="stylesheet" href="/assets/eridian-echo/eridian-echo.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <main class="workbench">
+        <header class="wood-panel header-panel">
+            <h1>Eridian Echo</h1>
+            <p>Upload audio recordings for high-fidelity transcription.</p>
+            <small class="disclaimer">Uploaded audio is transmitted to our transcription provider. Temporary MP3 copies are deleted immediately after processing.</small>
+        </header>
+
+        <section class="wood-panel dropzone-panel" id="dropzone">
+            <div class="dropzone-content">
+                <p>Drag and drop an .mp3 file here, or click to select</p>
+                <input type="file" id="file-input" accept=".mp3,audio/mpeg" style="display: none;">
+                <button type="button" class="wood-button" onclick="document.getElementById('file-input').click()">Select File</button>
+            </div>
+            <div id="upload-progress-container" style="display: none;">
+                <p id="upload-status">Uploading...</p>
+                <div class="progress-bar">
+                    <div id="upload-progress-fill" class="progress-fill"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="jobs-container" class="jobs-grid">
+            <!-- Jobs will be populated here -->
+        </section>
+        
+        <img src="/assets/eridian-echo/rocky.jpg" alt="Rocky" class="easter-egg">
+    </main>
+
+    <!-- Template for a job card -->
+    <template id="job-card-template">
+        <article class="wood-panel job-card">
+            <header class="job-header">
+                <h3 class="filename"></h3>
+                <span class="status-badge"></span>
+            </header>
+            <div class="transcript-content"></div>
+        </article>
+    </template>
+
+    <script src="/assets/eridian-echo/eridian-echo.js"></script>
+</body>
+</html>

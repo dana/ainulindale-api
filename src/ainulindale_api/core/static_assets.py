@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 def mount_static_assets(app: FastAPI) -> None:
     # Resolve paths relative to the current file
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
+
     app.mount(
         "/assets/common",
         StaticFiles(directory=os.path.join(base_dir, "static", "common")),

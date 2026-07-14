@@ -1,2 +1,6 @@
 fastapi
 uvicorn[standard]
+motor
+google-genai
+python-multipart
+jinja2

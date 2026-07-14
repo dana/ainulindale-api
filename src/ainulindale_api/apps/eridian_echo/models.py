@@ -13,8 +13,8 @@ class Job(BaseModel):
     status: str = "queued"  # queued, processing, succeeded, failed
     transcript: str | None = None
     error: str | None = None
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
 
 
 async def create_job(owner_id: str, filename: str) -> Job:
@@ -41,7 +41,7 @@ async def get_jobs_for_owner(owner_id: str) -> list[Job]:
 async def update_job_status(
     job_id: str, status: str, transcript: str | None = None, error: str | None = None
 ):
-    update_data = {"status": status, "updated_at": datetime.datetime.utcnow()}
+    update_data = {"status": status, "updated_at": datetime.datetime.now(datetime.UTC)}
     if transcript is not None:
         update_data["transcript"] = transcript
     if error is not None:

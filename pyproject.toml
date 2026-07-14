@@ -32,6 +32,10 @@ packages = ["src/ainulindale_api"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore:.*_UnionGenericAlias.*:DeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
 
 [tool.ruff]
 line-length = 100

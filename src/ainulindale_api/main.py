@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from ainulindale_api.api.v1.health import root_router as health_root_router
 from ainulindale_api.api.v1.router import api_v1_router
@@ -7,10 +9,10 @@ from ainulindale_api.apps.eridian_echo.web import router as eridian_echo_router
 from ainulindale_api.apps.main_site.web import router as main_site_router
 from ainulindale_api.apps.ops_console.web import router as ops_console_router
 from ainulindale_api.apps.share.web import router as share_router
+from ainulindale_api.core import db
 from ainulindale_api.core.routing import enforce_public_json_request_contract
 from ainulindale_api.core.static_assets import mount_static_assets
-from ainulindale_api.core import db
-from motor.motor_asyncio import AsyncIOMotorClient
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +23,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     if db.client:
         db.client.close()
+
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -49,5 +52,6 @@ def create_app() -> FastAPI:
     mount_static_assets(app)
 
     return app
+
 
 app = create_app()

@@ -1,4 +1,5 @@
 import os
+
 from motor.motor_asyncio import AsyncIOMotorClient
 
 # Default to the cluster DNS if not specified
@@ -7,6 +8,7 @@ DATABASE_NAME = "ainulindale"
 
 client: AsyncIOMotorClient = None
 db = None
+
 
 def get_db():
     return db

@@ -6,10 +6,12 @@ from fastapi.responses import JSONResponse
 API_V1_PREFIX = "/api/v1"
 JSON_BODY_METHODS = {"POST", "PUT", "PATCH"}
 
+
 def _media_type(content_type: str | None) -> str | None:
     if content_type is None:
         return None
     return content_type.split(";", 1)[0].strip().lower()
+
 
 async def enforce_public_json_request_contract(
     request: Request,

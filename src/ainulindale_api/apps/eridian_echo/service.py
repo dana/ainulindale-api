@@ -35,6 +35,9 @@ def get_client() -> genai.Client:
                 with open(ns_path) as f:
                     namespace = f.read().strip()
 
+                if os.environ.get("CI"):
+                    namespace = "ainulindale-api"
+
                 base_url = "https://kubernetes.default.svc/api/v1/namespaces"
                 url = f"{base_url}/{namespace}/secrets/gemini-api-key"
                 context = ssl.create_default_context()

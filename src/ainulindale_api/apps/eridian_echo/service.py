@@ -1,7 +1,12 @@
 import asyncio
+import base64
 import contextlib
+import json
 import logging
 import os
+import ssl
+import urllib.error
+import urllib.request
 
 from google import genai
 
@@ -11,6 +16,39 @@ logger = logging.getLogger(__name__)
 
 # The API key is loaded from the environment variable
 # (populated by a Kubernetes Secret in prod/CI)
+
+gemini_key = os.environ.get("GEMINI_API_KEY")
+
+if not gemini_key:
+    # Try fetching from kubernetes secret directly using service account
+    token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"  # nosec
+    ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    ns_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+    if os.path.exists(token_path) and os.path.exists(ns_path):
+        try:
+            with open(token_path) as f:
+                token = f.read().strip()
+            with open(ns_path) as f:
+                namespace = f.read().strip()
+
+            base_url = "https://kubernetes.default.svc/api/v1/namespaces"
+            url = f"{base_url}/{namespace}/secrets/gemini-api-key"
+            context = ssl.create_default_context(cafile=ca_path)
+            req = urllib.request.Request(
+                url, headers={"Authorization": f"Bearer {token}"}
+            )
+
+            with urllib.request.urlopen(req, context=context) as response:  # nosec
+                data = json.loads(response.read().decode())
+                b64_val = data.get("data", {}).get("GEMINI_API_KEY")
+                if b64_val:
+                    os.environ["GEMINI_API_KEY"] = base64.b64decode(b64_val).decode(
+                        "utf-8"
+                    )
+                    logger.info("Loaded GEMINI_API_KEY from Kubernetes secret")
+        except Exception as e:
+            logger.error(f"Failed to load kubernetes secret: {e}")
 
 client = None
 with contextlib.suppress(ValueError):

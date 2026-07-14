@@ -11,7 +11,7 @@ client = TestClient(app)
 
 # The user explicitly asked to run E2E Gemini tests using the provided context MP3.
 MP3_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../context/new-service-test.mp3")
+    os.path.join(os.path.dirname(__file__), "fixtures/new-service-test.mp3")
 )
 
 

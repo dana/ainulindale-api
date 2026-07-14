@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import contextlib
 import json
 import logging
 import os
@@ -44,13 +43,15 @@ def get_client() -> genai.Client:
                     url, headers={"Authorization": f"Bearer {token}"}
                 )
 
-                with urllib.request.urlopen(req, context=context, timeout=10) as response:  # nosec
+                with urllib.request.urlopen(
+                    req, context=context, timeout=10
+                ) as response:  # nosec
                     data = json.loads(response.read().decode())
                     b64_val = data.get("data", {}).get("GEMINI_API_KEY")
                     if b64_val:
-                        os.environ["GEMINI_API_KEY"] = base64.b64decode(b64_val).decode(
-                            "utf-8"
-                        ).strip()
+                        os.environ["GEMINI_API_KEY"] = (
+                            base64.b64decode(b64_val).decode("utf-8").strip()
+                        )
                         logger.info("Loaded GEMINI_API_KEY from Kubernetes secret")
             except Exception as e:
                 logger.error(f"Failed to load kubernetes secret: {e}")

@@ -59,7 +59,7 @@ def test_eridian_echo_frontend_sets_cookie() -> None:
 
 @pytest.mark.skipif(
     not os.path.exists(MP3_PATH) or not os.environ.get("GEMINI_API_KEY"),
-    reason="Missing test MP3 or GEMINI_API_KEY environment variable"
+    reason="Missing test MP3 or GEMINI_API_KEY environment variable",
 )
 def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
 

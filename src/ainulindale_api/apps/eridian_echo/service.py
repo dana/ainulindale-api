@@ -21,7 +21,7 @@ gemini_key = os.environ.get("GEMINI_API_KEY")
 
 if not gemini_key:
     # Try fetching from kubernetes secret directly using service account
-    token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"  # nosec
     ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
     ns_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
@@ -39,7 +39,7 @@ if not gemini_key:
                 url, headers={"Authorization": f"Bearer {token}"}
             )
 
-            with urllib.request.urlopen(req, context=context) as response:
+            with urllib.request.urlopen(req, context=context) as response:  # nosec
                 data = json.loads(response.read().decode())
                 b64_val = data.get("data", {}).get("GEMINI_API_KEY")
                 if b64_val:

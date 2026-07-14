@@ -26,7 +26,12 @@ def setup_teardown_db(unique_db_name):
     original_mongo_uri = db.MONGO_URI
 
     db.DATABASE_NAME = unique_db_name
-    db.MONGO_URI = "mongodb://127.0.0.1:27017"
+    if os.environ.get("CI"):
+        test_mongo_uri = "mongodb://mongodb.mongodb.svc.cluster.local:27017"
+    else:
+        test_mongo_uri = "mongodb://127.0.0.1:27017"
+
+    db.MONGO_URI = test_mongo_uri
 
     yield unique_db_name
 
@@ -36,16 +41,22 @@ def setup_teardown_db(unique_db_name):
 
     # Drop the test database synchronously wrapping async call
     async def drop_db():
-        client = AsyncIOMotorClient("mongodb://127.0.0.1:27017")
+        client = AsyncIOMotorClient(test_mongo_uri)
         await client.drop_database(unique_db_name)
         client.close()
 
     asyncio.run(drop_db())
 
 
+def has_gemini_credentials():
+    if os.environ.get("GEMINI_API_KEY"):
+        return True
+    return os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token")
+
+
 @pytest.mark.skipif(
-    not os.path.exists(MP3_PATH) or not os.environ.get("GEMINI_API_KEY"),
-    reason="Missing test MP3 or GEMINI_API_KEY environment variable",
+    not os.path.exists(MP3_PATH) or not has_gemini_credentials(),
+    reason="Missing test MP3 or Gemini credentials",
 )
 def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
     # Using 'with' on TestClient triggers FastAPI lifespan (startup/shutdown events)

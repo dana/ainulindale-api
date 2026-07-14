@@ -57,9 +57,15 @@ def test_eridian_echo_frontend_sets_cookie() -> None:
     assert "eridian_echo_owner" in response.cookies
 
 
+def has_gemini_credentials():
+    if os.environ.get("GEMINI_API_KEY"):
+        return True
+    return os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token")
+
+
 @pytest.mark.skipif(
-    not os.path.exists(MP3_PATH) or not os.environ.get("GEMINI_API_KEY"),
-    reason="Missing test MP3 or GEMINI_API_KEY environment variable",
+    not os.path.exists(MP3_PATH) or not has_gemini_credentials(),
+    reason="Missing test MP3 or Gemini credentials",
 )
 def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
 

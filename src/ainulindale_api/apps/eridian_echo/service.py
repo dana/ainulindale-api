@@ -7,9 +7,8 @@ from . import models
 
 logger = logging.getLogger(__name__)
 
-# The API key can be overridden by environment variable
-api_key = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6Kqalgus3eHUK9fJwoMa7jCruFUgM3UQo6VhGKvLiVlZA")
-client = genai.Client(api_key=api_key)
+# The API key is loaded from the environment variable (populated by a Kubernetes Secret in prod/CI)
+client = genai.Client()
 
 def _transcribe_sync(filepath: str) -> str:
     """Synchronous function to upload and transcribe using Gemini."""

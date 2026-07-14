@@ -52,7 +52,7 @@ def mock_db():
 
 
 def test_eridian_echo_frontend_sets_cookie() -> None:
-    response = client.get("/eridian-echo/")
+    response = client.get("/api/v1/eridian-echo/")
     assert response.status_code == 200
     assert "eridian_echo_owner" in response.cookies
 
@@ -64,7 +64,7 @@ def test_eridian_echo_frontend_sets_cookie() -> None:
 def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
 
     # First get the page to acquire a cookie
-    client.get("/eridian-echo/")
+    client.get("/api/v1/eridian-echo/")
     cookie = client.cookies.get("eridian_echo_owner")
     assert cookie is not None
 

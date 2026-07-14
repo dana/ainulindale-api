@@ -19,7 +19,7 @@ body, html {
 
 /* Photorealistic Nature Backdrop */
 body {
-    background-image: url('/assets/eridian-echo/forest.jpg');
+    background-image: url('/api/v1/assets/eridian-echo/forest.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -48,7 +48,7 @@ body {
 
 /* Wooden Panels (Cards) */
 .wood-panel {
-    background-image: url('/assets/eridian-echo/wood.jpg');
+    background-image: url('/api/v1/assets/eridian-echo/wood.jpg');
     background-size: cover;
     background-blend-mode: multiply;
     background-color: rgba(220, 180, 140, 0.8);
@@ -94,7 +94,7 @@ p {
 }
 
 .wood-button {
-    background-image: url('/assets/eridian-echo/wood.jpg');
+    background-image: url('/api/v1/assets/eridian-echo/wood.jpg');
     background-size: cover;
     background-color: rgba(180, 120, 80, 0.9);
     background-blend-mode: multiply;

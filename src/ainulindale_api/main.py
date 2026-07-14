@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
 
     # HTML Apps
     app.include_router(main_site_router, prefix="")
-    app.include_router(eridian_echo_router, prefix="/eridian-echo")
+    app.include_router(eridian_echo_router, prefix="/api/v1/eridian-echo")
     app.include_router(ops_console_router, prefix="/ops")
     app.include_router(share_router, prefix="/s")
 

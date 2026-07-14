@@ -19,7 +19,7 @@ def mount_static_assets(app: FastAPI) -> None:
         name="static_main",
     )
     app.mount(
-        "/assets/eridian-echo",
+        "/api/v1/assets/eridian-echo",
         StaticFiles(directory=os.path.join(base_dir, "apps", "eridian_echo", "static")),
         name="static_eridian_echo",
     )

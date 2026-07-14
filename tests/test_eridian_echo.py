@@ -57,9 +57,11 @@ def test_eridian_echo_frontend_sets_cookie() -> None:
     assert "eridian_echo_owner" in response.cookies
 
 
+@pytest.mark.skipif(
+    not os.path.exists(MP3_PATH) or not os.environ.get("GEMINI_API_KEY"),
+    reason="Missing test MP3 or GEMINI_API_KEY environment variable"
+)
 def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
-    # Ensure the file exists
-    assert os.path.exists(MP3_PATH), f"Test MP3 not found at {MP3_PATH}"
 
     # First get the page to acquire a cookie
     client.get("/eridian-echo/")

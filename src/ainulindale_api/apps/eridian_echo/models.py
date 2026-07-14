@@ -13,8 +13,12 @@ class Job(BaseModel):
     status: str = "queued"  # queued, processing, succeeded, failed
     transcript: str | None = None
     error: str | None = None
-    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
-    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    created_at: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+    )
+    updated_at: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+    )
 
 
 async def create_job(owner_id: str, filename: str) -> Job:

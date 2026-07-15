@@ -126,17 +126,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         jobs.forEach(job => {
             const clone = jobCardTemplate.content.cloneNode(true);
+            const card = clone.querySelector('.job-card');
             
             const title = clone.querySelector('.filename');
             title.textContent = job.filename;
+            
+            const timestamp = clone.querySelector('.job-timestamp');
+            if (job.created_at) {
+                const d = new Date(job.created_at);
+                timestamp.textContent = "Uploaded on " + d.toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'});
+            }
             
             const badge = clone.querySelector('.status-badge');
             badge.textContent = job.status;
             badge.classList.add('status-' + job.status);
 
             const content = clone.querySelector('.transcript-content');
+            const copyBtn = clone.querySelector('.copy-btn');
+            const deleteBtn = clone.querySelector('.delete-btn');
+
             if (job.status === 'succeeded' && job.transcript) {
                 content.textContent = job.transcript;
+                copyBtn.style.display = 'inline-block';
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(job.transcript).then(() => {
+                        const origText = copyBtn.textContent;
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(() => copyBtn.textContent = origText, 2000);
+                    });
+                });
             } else if (job.status === 'failed' && job.error) {
                 content.textContent = 'Error: ' + job.error;
                 content.classList.add('error-text');
@@ -145,6 +163,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 content.style.fontStyle = 'italic';
                 content.style.color = '#666';
             }
+
+            deleteBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this recording and transcript?')) {
+                    fetch('/api/v1/eridian-echo/jobs/' + job.id, { method: 'DELETE' })
+                        .then(res => {
+                            if (res.ok) fetchJobs();
+                            else alert('Failed to delete job.');
+                        })
+                        .catch(err => alert('Failed to delete job: ' + err));
+                }
+            });
 
             jobsContainer.appendChild(clone);
         });
@@ -156,4 +185,19 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchJobs();
         }, 5000);
     }
+    
+    // Support Ctrl-A / Cmd-A selection inside transcript boxes
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.classList.contains('transcript-content')) {
+                e.preventDefault();
+                const range = document.createRange();
+                range.selectNodeContents(activeEl);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    });
 });

@@ -113,3 +113,22 @@ async def get_job(job_id: str, request: Request):
         )
 
     return JobResponse.from_job(job)
+
+
+@router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(job_id: str, request: Request):
+    owner_id = request.cookies.get("eridian_echo_owner")
+    if not owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing owner cookie",
+        )
+
+    job = await models.get_job(job_id)
+    if not job or job.owner_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+
+    await models.delete_job(job_id)

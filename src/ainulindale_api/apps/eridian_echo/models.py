@@ -52,3 +52,7 @@ async def update_job_status(
         update_data["error"] = error
 
     await db.db.eridian_echo_jobs.update_one({"_id": job_id}, {"$set": update_data})
+
+
+async def delete_job(job_id: str):
+    await db.db.eridian_echo_jobs.delete_one({"_id": job_id})

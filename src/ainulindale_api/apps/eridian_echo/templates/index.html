@@ -44,10 +44,17 @@
     <template id="job-card-template">
         <article class="wood-panel job-card">
             <header class="job-header">
-                <h3 class="filename"></h3>
-                <span class="status-badge"></span>
+                <div>
+                    <h3 class="filename" style="margin-bottom: 5px;"></h3>
+                    <time class="job-timestamp" style="font-size: 0.85em; color: var(--text-secondary);"></time>
+                </div>
+                <div class="job-actions" style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="wood-button small-btn copy-btn" style="display: none;">Copy</button>
+                    <button type="button" class="wood-button small-btn delete-btn">Delete</button>
+                    <span class="status-badge"></span>
+                </div>
             </header>
-            <div class="transcript-content"></div>
+            <div class="transcript-content" tabindex="0"></div>
         </article>
     </template>
 

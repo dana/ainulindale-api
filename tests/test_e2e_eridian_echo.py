@@ -100,3 +100,45 @@ def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
         # specific test file was transcribed correctly.
         assert "hello" in transcript_lower or "test" in transcript_lower
         assert "new service" in transcript_lower or "test" in transcript_lower
+
+
+def test_eridian_echo_e2e_delete_job(setup_teardown_db):
+    with TestClient(app) as client:
+        client.get("/api/v1/eridian-echo/")
+        cookie = client.cookies.get("eridian_echo_owner")
+        assert cookie is not None
+
+        job_id = "test-delete-job-id"
+
+        import pymongo
+
+        def insert_test_job():
+            sync_client = pymongo.MongoClient(db.MONGO_URI)
+            db_sync = sync_client[db.DATABASE_NAME]
+            db_sync.eridian_echo_jobs.insert_one(
+                {
+                    "_id": job_id,
+                    "owner_id": cookie,
+                    "filename": "delete_me.mp3",
+                    "status": "succeeded",
+                    "transcript": "Delete me",
+                    "created_at": "2026-01-01T00:00:00.000",
+                    "updated_at": "2026-01-01T00:00:00.000",
+                }
+            )
+            sync_client.close()
+
+        insert_test_job()
+
+        response = client.get("/api/v1/eridian-echo/jobs")
+        assert response.status_code == 200
+        jobs = response.json()
+        assert len(jobs) == 1
+        assert jobs[0]["id"] == job_id
+
+        response = client.delete(f"/api/v1/eridian-echo/jobs/{job_id}")
+        assert response.status_code == 204
+
+        response = client.get("/api/v1/eridian-echo/jobs")
+        assert response.status_code == 200
+        assert len(response.json()) == 0

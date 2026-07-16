@@ -13,6 +13,7 @@ APP_MODULE="${APP_MODULE:-ainulindale_api.main:app}"
 # Important for src-layout repos when the project has not been installed
 # editable into the venv.
 export PYTHONPATH="${PYTHONPATH:-${repo_root}/src}"
+export MONGO_URI="${MONGO_URI:-mongodb://127.0.0.1:27017}"
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="python3"

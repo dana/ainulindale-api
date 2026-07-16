@@ -4,3 +4,5 @@ motor
 google-genai
 python-multipart
 jinja2
+google-auth
+httpx

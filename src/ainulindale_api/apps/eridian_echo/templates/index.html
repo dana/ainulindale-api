@@ -14,8 +14,23 @@
     
     <main class="workbench">
         <header class="wood-panel header-panel">
-            <h1>Eridian Echo</h1>
-            <p>Upload audio recordings for high-fidelity transcription.</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1>Eridian Echo</h1>
+                    <p>Upload audio recordings for high-fidelity transcription.</p>
+                </div>
+                <div style="text-align: right; display: flex; flex-direction: column; gap: 8px;">
+                    {% if is_authenticated %}
+                        <span style="font-size: 0.9em; font-weight: bold;">Welcome, {{ user.name }}</span>
+                        <form method="post" action="/api/v1/eridian-echo/auth/signout" style="margin: 0;">
+                            <button type="submit" class="wood-button small-btn">Sign Out</button>
+                        </form>
+                    {% else %}
+                        <span style="font-size: 0.9em; font-style: italic; color: #555;">Guest user</span>
+                        <a href="/api/v1/eridian-echo/auth/google/login" class="wood-button small-btn" style="text-decoration: none; display: inline-block;">Authenticate with Google</a>
+                    {% endif %}
+                </div>
+            </div>
             <small class="disclaimer">Uploaded audio is transmitted to our transcription provider. Temporary MP3 copies are deleted immediately after processing.</small>
         </header>
 

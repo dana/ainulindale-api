@@ -13,7 +13,7 @@ from fastapi import (
 )
 from pydantic import BaseModel
 
-from . import models, service
+from . import auth, models, service
 
 router = APIRouter()
 
@@ -44,12 +44,19 @@ async def upload_audio(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),  # noqa: B008
 ):
-    owner_id = request.cookies.get("eridian_echo_owner")
-    if not owner_id:
+    session_id = auth.get_session_cookie(request)
+    if not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing owner cookie",
+            detail="Missing session cookie",
         )
+    session = await models.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+    owner_id = session.principal_id
 
     # Do not trust only filename extension, verify it's an mp3
     # or audio file if possible,
@@ -88,9 +95,13 @@ async def upload_audio(
 
 @router.get("/jobs", response_model=list[JobResponse])
 async def list_jobs(request: Request):
-    owner_id = request.cookies.get("eridian_echo_owner")
-    if not owner_id:
+    session_id = auth.get_session_cookie(request)
+    if not session_id:
         return []
+    session = await models.get_session(session_id)
+    if not session:
+        return []
+    owner_id = session.principal_id
 
     jobs = await models.get_jobs_for_owner(owner_id)
     return [JobResponse.from_job(j) for j in jobs]
@@ -98,12 +109,19 @@ async def list_jobs(request: Request):
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
 async def get_job(job_id: str, request: Request):
-    owner_id = request.cookies.get("eridian_echo_owner")
-    if not owner_id:
+    session_id = auth.get_session_cookie(request)
+    if not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing owner cookie",
+            detail="Missing session cookie",
         )
+    session = await models.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+    owner_id = session.principal_id
 
     job = await models.get_job(job_id)
     if not job or job.owner_id != owner_id:
@@ -117,12 +135,19 @@ async def get_job(job_id: str, request: Request):
 
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(job_id: str, request: Request):
-    owner_id = request.cookies.get("eridian_echo_owner")
-    if not owner_id:
+    session_id = auth.get_session_cookie(request)
+    if not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing owner cookie",
+            detail="Missing session cookie",
         )
+    session = await models.get_session(session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid session",
+        )
+    owner_id = session.principal_id
 
     job = await models.get_job(job_id)
     if not job or job.owner_id != owner_id:

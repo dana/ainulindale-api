@@ -58,7 +58,7 @@ async def upload_audio(
         )
     owner_id = session.principal_id
 
-    # Do not trust only filename extension, verify it's an mp3
+    # Do not trust only filename extension, verify it's an mp3 or m4a
     # or audio file if possible,
     # but the prompt states "Do not trust only the filename extension".
     # We will simply accept it and let Gemini fail if it's invalid.

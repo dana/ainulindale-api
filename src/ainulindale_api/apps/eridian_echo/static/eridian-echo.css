@@ -200,6 +200,7 @@ p {
     overflow-y: auto;
     font-size: 0.95em;
     color: #222;
+    text-shadow: none;
     outline: none;
 }
 

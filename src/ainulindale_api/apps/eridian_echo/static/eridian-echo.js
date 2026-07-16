@@ -51,8 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function handleFile(file) {
-        if (!file.name.toLowerCase().endsWith('.mp3') && !file.type.includes('audio')) {
-            alert('Please select an .mp3 file.');
+        const isMp3 = file.name.toLowerCase().endsWith('.mp3');
+        const isM4a = file.name.toLowerCase().endsWith('.m4a');
+        if (!isMp3 && !isM4a && !file.type.includes('audio')) {
+            alert('Please select an .mp3 or .m4a file.');
             return;
         }
 

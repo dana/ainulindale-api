@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from ainulindale_api.apps.eridian_echo import models
 from ainulindale_api.main import app
 
-client = TestClient(app)
+client = TestClient(app, base_url="https://testserver")
 
 # The user explicitly asked to run E2E Gemini tests using the provided context MP3.
 MP3_PATH = os.path.abspath(
@@ -34,14 +34,31 @@ def mock_db():
             "ainulindale_api.apps.eridian_echo.service.models.update_job_status",
             new_callable=AsyncMock,
         ) as mock_update,
+        patch(
+            "ainulindale_api.apps.eridian_echo.api.models.get_session",
+            new_callable=AsyncMock,
+        ) as mock_get_session,
+        patch(
+            "ainulindale_api.apps.eridian_echo.auth.models.create_session",
+            new_callable=AsyncMock,
+        ) as mock_create_session,
+        patch(
+            "ainulindale_api.apps.eridian_echo.auth.models.get_session",
+            new_callable=AsyncMock,
+        ) as mock_auth_get_session,
     ):
         # Create a fake job
         fake_job = models.Job(
             id="test-123", owner_id="owner-456", filename="new-service-test.mp3"
         )
+        fake_session = models.Session(id="session-123", principal_id="owner-456")
+        
         mock_create.return_value = fake_job
         mock_get.return_value = fake_job
         mock_get_owner.return_value = [fake_job]
+        mock_get_session.return_value = fake_session
+        mock_create_session.return_value = fake_session
+        mock_auth_get_session.return_value = fake_session
 
         yield {
             "create_job": mock_create,
@@ -51,10 +68,10 @@ def mock_db():
         }
 
 
-def test_eridian_echo_frontend_sets_cookie() -> None:
+def test_eridian_echo_frontend_sets_cookie(mock_db) -> None:
     response = client.get("/api/v1/eridian-echo/")
     assert response.status_code == 200
-    assert "eridian_echo_owner" in response.cookies
+    assert "eridian_echo_session" in response.cookies
 
 
 def has_gemini_credentials():
@@ -71,7 +88,7 @@ def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
 
     # First get the page to acquire a cookie
     client.get("/api/v1/eridian-echo/")
-    cookie = client.cookies.get("eridian_echo_owner")
+    cookie = client.cookies.get("eridian_echo_session")
     assert cookie is not None
 
     # Now upload the file

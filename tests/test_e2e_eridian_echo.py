@@ -60,10 +60,10 @@ def has_gemini_credentials():
 )
 def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
     # Using 'with' on TestClient triggers FastAPI lifespan (startup/shutdown events)
-    with TestClient(app) as client:
+    with TestClient(app, base_url="https://testserver") as client:
         # First get the page to acquire a cookie
         client.get("/api/v1/eridian-echo/")
-        cookie = client.cookies.get("eridian_echo_owner")
+        cookie = client.cookies.get("eridian_echo_session")
         assert cookie is not None
 
         # Now upload the file
@@ -103,9 +103,9 @@ def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
 
 
 def test_eridian_echo_e2e_delete_job(setup_teardown_db):
-    with TestClient(app) as client:
+    with TestClient(app, base_url="https://testserver") as client:
         client.get("/api/v1/eridian-echo/")
-        cookie = client.cookies.get("eridian_echo_owner")
+        cookie = client.cookies.get("eridian_echo_session")
         assert cookie is not None
 
         job_id = "test-delete-job-id"
@@ -115,10 +115,13 @@ def test_eridian_echo_e2e_delete_job(setup_teardown_db):
         def insert_test_job():
             sync_client = pymongo.MongoClient(db.MONGO_URI)
             db_sync = sync_client[db.DATABASE_NAME]
+            # Need to get the principal id from the session
+            session_doc = db_sync.eridian_echo_sessions.find_one({"_id": cookie})
+            principal_id = session_doc["principal_id"] if session_doc else "unknown"
             db_sync.eridian_echo_jobs.insert_one(
                 {
                     "_id": job_id,
-                    "owner_id": cookie,
+                    "owner_id": principal_id,
                     "filename": "delete_me.mp3",
                     "status": "succeeded",
                     "transcript": "Delete me",

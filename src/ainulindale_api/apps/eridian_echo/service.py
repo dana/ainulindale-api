@@ -67,8 +67,17 @@ def get_client() -> genai.Client:
 def _transcribe_sync(filepath: str) -> str:
     """Synchronous function to upload and transcribe using Gemini."""
     client = get_client()
+    
+    mime_type = None
+    if filepath.lower().endswith('.m4a'):
+        mime_type = 'audio/mp4'
+    elif filepath.lower().endswith('.mp3'):
+        mime_type = 'audio/mpeg'
+        
+    config = {'mime_type': mime_type} if mime_type else None
+
     logger.info(f"Uploading {filepath}...")
-    uploaded_file = client.files.upload(file=filepath)
+    uploaded_file = client.files.upload(file=filepath, config=config)
 
     try:
         logger.info(f"Generating transcript for {filepath}...")

@@ -17,7 +17,7 @@ from ainulindale_api.core.static_assets import mount_static_assets
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    db.client = AsyncIOMotorClient(db.MONGO_URI)
+    db.client = AsyncIOMotorClient(db.MONGO_URI, serverSelectionTimeoutMS=2000)
     db.db = db.client[db.DATABASE_NAME]
     yield
     # Shutdown

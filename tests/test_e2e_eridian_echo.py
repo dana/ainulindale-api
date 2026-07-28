@@ -48,6 +48,22 @@ def setup_teardown_db(unique_db_name):
     asyncio.run(drop_db())
 
 
+def is_mongo_available():
+    if os.environ.get("CI"):
+        test_mongo_uri = "mongodb://mongodb.mongodb.svc.cluster.local:27017"
+    else:
+        test_mongo_uri = os.environ.get("MONGO_URI", "mongodb://127.0.0.1:27017")
+    try:
+        import pymongo
+
+        client = pymongo.MongoClient(test_mongo_uri, serverSelectionTimeoutMS=1000)
+        client.admin.command("ping")
+        client.close()
+        return True
+    except Exception:
+        return False
+
+
 def has_gemini_credentials():
     if os.environ.get("GEMINI_API_KEY"):
         return True
@@ -55,8 +71,10 @@ def has_gemini_credentials():
 
 
 @pytest.mark.skipif(
-    not os.path.exists(MP3_PATH) or not has_gemini_credentials(),
-    reason="Missing test MP3 or Gemini credentials",
+    not os.path.exists(MP3_PATH)
+    or not has_gemini_credentials()
+    or not is_mongo_available(),
+    reason="Missing test MP3, Gemini credentials, or MongoDB connection",
 )
 def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
     # Using 'with' on TestClient triggers FastAPI lifespan (startup/shutdown events)
@@ -102,6 +120,10 @@ def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
         assert "new service" in transcript_lower or "test" in transcript_lower
 
 
+@pytest.mark.skipif(
+    not is_mongo_available(),
+    reason="MongoDB is not available",
+)
 def test_eridian_echo_e2e_delete_job(setup_teardown_db):
     with TestClient(app, base_url="https://testserver") as client:
         client.get("/api/v1/eridian-echo/")

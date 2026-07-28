@@ -52,7 +52,7 @@ def mock_db():
             id="test-123", owner_id="owner-456", filename="new-service-test.mp3"
         )
         fake_session = models.Session(id="session-123", principal_id="owner-456")
-        
+
         mock_create.return_value = fake_job
         mock_get.return_value = fake_job
         mock_get_owner.return_value = [fake_job]

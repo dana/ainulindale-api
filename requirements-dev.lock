@@ -1,6 +1,6 @@
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anyio==4.14.1
+anyio==4.14.2
 bandit==1.9.4
 boolean.py==5.0
 CacheControl==0.14.4
@@ -48,7 +48,7 @@ tomli==2.4.1
 tomli_w==1.2.0
 typing_extensions==4.15.0
 typing-inspection==0.4.2
-urllib3==2.7.0
+urllib3==2.8.0
 uvicorn==0.49.0
 uvloop==0.22.1
 watchfiles==1.2.0

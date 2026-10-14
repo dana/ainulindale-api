@@ -88,7 +88,7 @@ def _transcribe_sync(filepath: str) -> str:
         """
 
         response = client.models.generate_content(
-            model="gemini-3.1-pro-preview", contents=[prompt, uploaded_file]
+            model="gemini-2.5-flash", contents=[prompt, uploaded_file]
         )
         return response.text
     finally:

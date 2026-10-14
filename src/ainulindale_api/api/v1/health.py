@@ -1,4 +1,6 @@
+import importlib.metadata
 import os
+import platform
 from datetime import UTC, datetime
 
 from fastapi import APIRouter
@@ -22,6 +24,13 @@ class LoadAverage(BaseModel):
 class HappyResponse(BaseModel):
     system_time_utc: str
     load_average: LoadAverage
+
+
+class VersionResponse(BaseModel):
+    git_sha: str
+    version: str
+    python_version: str
+    system_time_utc: str
 
 
 root_router = APIRouter(tags=["operational"])
@@ -48,4 +57,25 @@ def happy() -> HappyResponse:
             five_minutes=load5,
             fifteen_minutes=load15,
         ),
+    )
+
+
+def _get_git_sha() -> str:
+    return os.environ.get("GIT_SHA", "development")
+
+
+def _get_version() -> str:
+    try:
+        return importlib.metadata.version("ainulindale-api")
+    except Exception:
+        return "0.1.0"
+
+
+@v1_health_router.get("/version", response_model=VersionResponse)
+def version() -> VersionResponse:
+    return VersionResponse(
+        git_sha=_get_git_sha(),
+        version=_get_version(),
+        python_version=platform.python_version(),
+        system_time_utc=datetime.now(UTC).isoformat(),
     )

@@ -1,7 +1,6 @@
 import importlib.metadata
 import os
 import platform
-import subprocess
 from datetime import UTC, datetime
 
 from fastapi import APIRouter
@@ -62,17 +61,7 @@ def happy() -> HappyResponse:
 
 
 def _get_git_sha() -> str:
-    sha = os.environ.get("GIT_SHA")
-    if sha:
-        return sha
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-    except Exception:
-        return "unknown"
+    return os.environ.get("GIT_SHA", "development")
 
 
 def _get_version() -> str:

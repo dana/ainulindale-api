@@ -70,11 +70,17 @@ def has_gemini_credentials():
     return os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token")
 
 
+def is_live_gemini_enabled() -> bool:
+    val = os.environ.get("ENABLE_LIVE_GEMINI_TESTS", "0").lower()
+    return val in ("1", "true", "yes")
+
+
 @pytest.mark.skipif(
-    not os.path.exists(MP3_PATH)
+    not is_live_gemini_enabled()
+    or not os.path.exists(MP3_PATH)
     or not has_gemini_credentials()
     or not is_mongo_available(),
-    reason="Missing test MP3, Gemini credentials, or MongoDB connection",
+    reason="Live Gemini access tests disabled",
 )
 def test_eridian_echo_e2e_real_transcription(setup_teardown_db):
     # Using 'with' on TestClient triggers FastAPI lifespan (startup/shutdown events)

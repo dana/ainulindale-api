@@ -80,9 +80,16 @@ def has_gemini_credentials():
     return os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token")
 
 
+def is_live_gemini_enabled() -> bool:
+    val = os.environ.get("ENABLE_LIVE_GEMINI_TESTS", "0").lower()
+    return val in ("1", "true", "yes")
+
+
 @pytest.mark.skipif(
-    not os.path.exists(MP3_PATH) or not has_gemini_credentials(),
-    reason="Missing test MP3 or Gemini credentials",
+    not is_live_gemini_enabled()
+    or not os.path.exists(MP3_PATH)
+    or not has_gemini_credentials(),
+    reason="Live Gemini access tests disabled",
 )
 def test_eridian_echo_e2e_gemini_transcription(mock_db) -> None:
 

@@ -138,6 +138,7 @@ def test_openapi_advertises_only_intended_paths() -> None:
         "/api/v1/echo",
         "/api/v1/happy-path",
         "/api/v1/happy",
+        "/api/v1/version",
         "/api/v1/eridian-echo/upload",
         "/api/v1/eridian-echo/jobs",
         "/api/v1/eridian-echo/jobs/{job_id}",
@@ -229,3 +230,19 @@ def test_happy_endpoint_returns_json() -> None:
     assert isinstance(body["load_average"]["one_minute"], float)
     assert isinstance(body["load_average"]["five_minutes"], float)
     assert isinstance(body["load_average"]["fifteen_minutes"], float)
+
+
+def test_version_endpoint_returns_json() -> None:
+    response = client.get("/api/v1/version")
+
+    assert response.status_code == 200
+    body = assert_json_response(response)
+    assert "git_sha" in body
+    assert isinstance(body["git_sha"], str)
+    assert len(body["git_sha"]) > 0
+    assert "version" in body
+    assert body["version"] == "0.1.0"
+    assert "python_version" in body
+    assert isinstance(body["python_version"], str)
+    assert "system_time_utc" in body
+    assert isinstance(body["system_time_utc"], str)

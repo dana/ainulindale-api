@@ -134,6 +134,7 @@ jobs:
 
           docker build \
             --pull \
+            --build-arg "GIT_SHA=${HEAD_SHA}" \
             --label "org.opencontainers.image.title=ainulindale-api" \
             --label "org.opencontainers.image.source=${SOURCE_URL}" \
             --label "org.opencontainers.image.revision=${HEAD_SHA}" \

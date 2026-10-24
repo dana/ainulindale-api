@@ -38,16 +38,14 @@ def is_email_allowed(email: str | None) -> bool:
 
 
 def get_oauth_client_id() -> str:
-    return (
-        os.getenv("HOME_GOOGLE_OAUTH_CLIENT_ID")
-        or os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+    return os.getenv("HOME_GOOGLE_OAUTH_CLIENT_ID") or os.getenv(
+        "GOOGLE_OAUTH_CLIENT_ID", ""
     )
 
 
 def get_oauth_client_secret() -> str:
-    return (
-        os.getenv("HOME_GOOGLE_OAUTH_CLIENT_SECRET")
-        or os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+    return os.getenv("HOME_GOOGLE_OAUTH_CLIENT_SECRET") or os.getenv(
+        "GOOGLE_OAUTH_CLIENT_SECRET", ""
     )
 
 
@@ -143,7 +141,9 @@ async def google_login(request: Request):
         "nonce": nonce,
         "prompt": "select_account",
     }
-    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    )
 
     response = RedirectResponse(url=auth_url, status_code=303)
     set_session_cookie(response, session)

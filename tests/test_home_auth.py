@@ -8,7 +8,11 @@ from fastapi.testclient import TestClient
 from ainulindale_api.apps.home import models
 from ainulindale_api.main import app
 
-client = TestClient(app, base_url="https://testserver")
+
+@pytest.fixture
+def client():
+    with TestClient(app, base_url="https://testserver") as c:
+        yield c
 
 
 @pytest.fixture
@@ -63,6 +67,10 @@ def mock_home_db(fake_pending_session, fake_authenticated_session):
             "ainulindale_api.apps.home.models.get_user",
             new_callable=AsyncMock,
         ) as mock_get_user,
+        patch(
+            "ainulindale_api.apps.home.models.update_user_login",
+            new_callable=AsyncMock,
+        ) as mock_update_user_login,
     ):
         mock_get_session.return_value = fake_pending_session
         mock_create_session.return_value = fake_pending_session
@@ -86,10 +94,11 @@ def mock_home_db(fake_pending_session, fake_authenticated_session):
             "get_user_by_sub": mock_get_user_sub,
             "create_user": mock_create_user,
             "get_user": mock_get_user,
+            "update_user_login": mock_update_user_login,
         }
 
 
-def test_home_unauthenticated_redirects_to_login(mock_home_db):
+def test_home_unauthenticated_redirects_to_login(client, mock_home_db):
     client.cookies.clear()
     mock_home_db["get_session"].return_value = None
 
@@ -102,7 +111,7 @@ def test_home_unauthenticated_redirects_to_login(mock_home_db):
     assert response_slash.headers["location"] == "/home/auth/google/login"
 
 
-def test_home_login_redirects_to_google(mock_home_db, monkeypatch):
+def test_home_login_redirects_to_google(client, mock_home_db, monkeypatch):
     test_id = "test-client-id.apps.googleusercontent.com"
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", test_id)
     response = client.get("/home/auth/google/login", follow_redirects=False)
@@ -113,7 +122,7 @@ def test_home_login_redirects_to_google(mock_home_db, monkeypatch):
     assert "ainulindale_home_session" in response.cookies
 
 
-def test_home_callback_state_mismatch(mock_home_db, monkeypatch):
+def test_home_callback_state_mismatch(client, mock_home_db, monkeypatch):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-secret")
     client.cookies.set("ainulindale_home_session", "session-pending-123")
@@ -131,7 +140,7 @@ def test_home_callback_state_mismatch(mock_home_db, monkeypatch):
 @patch("ainulindale_api.apps.home.auth.id_token")
 @patch("ainulindale_api.apps.home.auth.google_requests.Request")
 def test_home_callback_unauthorized_email(
-    mock_req, mock_id_token, mock_async_client, mock_home_db, monkeypatch
+    mock_req, mock_id_token, mock_async_client, client, mock_home_db, monkeypatch
 ):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-secret")
@@ -170,7 +179,7 @@ def test_home_callback_unauthorized_email(
 @patch("ainulindale_api.apps.home.auth.id_token")
 @patch("ainulindale_api.apps.home.auth.google_requests.Request")
 def test_home_callback_allowlisted_email_dana(
-    mock_req, mock_id_token, mock_async_client, mock_home_db, monkeypatch
+    mock_req, mock_id_token, mock_async_client, client, mock_home_db, monkeypatch
 ):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-secret")
@@ -214,7 +223,7 @@ def test_home_callback_allowlisted_email_dana(
 @patch("ainulindale_api.apps.home.auth.id_token")
 @patch("ainulindale_api.apps.home.auth.google_requests.Request")
 def test_home_callback_allowlisted_email_michelle(
-    mock_req, mock_id_token, mock_async_client, mock_home_db, monkeypatch
+    mock_req, mock_id_token, mock_async_client, client, mock_home_db, monkeypatch
 ):
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-secret")
@@ -254,7 +263,9 @@ def test_home_callback_allowlisted_email_michelle(
     assert "ainulindale_home_session" in response.cookies
 
 
-def test_home_authenticated_success_page(mock_home_db, fake_authenticated_session):
+def test_home_authenticated_success_page(
+    client, mock_home_db, fake_authenticated_session
+):
     client.cookies.set("ainulindale_home_session", "session-auth-123")
     mock_home_db["get_session"].return_value = fake_authenticated_session
 
@@ -265,7 +276,7 @@ def test_home_authenticated_success_page(mock_home_db, fake_authenticated_sessio
     assert "Authorized (Allowlisted)" in response.text
 
 
-def test_home_signout(mock_home_db):
+def test_home_signout(client, mock_home_db):
     client.cookies.set("ainulindale_home_session", "session-auth-123")
     response = client.post("/home/auth/signout", follow_redirects=False)
     assert response.status_code == 303
@@ -273,7 +284,7 @@ def test_home_signout(mock_home_db):
     mock_home_db["delete_session"].assert_called_once_with("session-auth-123")
 
 
-def test_home_verify_endpoint(mock_home_db, fake_authenticated_session):
+def test_home_verify_endpoint(client, mock_home_db, fake_authenticated_session):
     # Unauthenticated
     client.cookies.clear()
     mock_home_db["get_session"].return_value = None

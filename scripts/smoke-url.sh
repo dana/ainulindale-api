@@ -192,4 +192,8 @@ code="$(request eridian_echo_css GET /api/v1/assets/eridian-echo/eridian-echo.cs
 assert_status eridian_echo_css "$code" 200
 pass eridian_echo_css
 
+code="$(request home_page GET /home)"
+assert_status home_page "$code" 303
+pass home_page
+
 echo "smoke-url passed for ${BASE_URL}"

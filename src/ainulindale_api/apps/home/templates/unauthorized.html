@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Access Restricted - diederich.ai</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --warning: #f59e0b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --button-bg: #334155;
+      --button-hover: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 2.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .badge-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--warning);
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .titles h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .titles p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.2rem;
+    }
+
+    .status-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+
+    .status-label {
+      color: var(--text-muted);
+    }
+
+    .status-value {
+      color: var(--text);
+      font-weight: 500;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .content-box {
+      line-height: 1.6;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .content-box p {
+      margin-bottom: 0.75rem;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0f172a;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge-icon">✕</div>
+      <div class="titles">
+        <h1>Access Restricted</h1>
+        <p>Private Family Portal</p>
+      </div>
+    </div>
+
+    <div class="status-box">
+      <div class="status-row">
+        <span class="status-label">Signed In As</span>
+        <span class="status-value">{{ email }}</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Authorization</span>
+        <span class="status-value" style="color: var(--warning);">Not on Allowlist</span>
+      </div>
+    </div>
+
+    <div class="content-box">
+      <p>Hello{% if name %} <strong>{{ name }}</strong>{% endif %},</p>
+      <p>You have successfully authenticated with Google as <code>{{ email }}</code>. However, this private home portal is restricted to authorized family members.</p>
+      <p>If you have an authorized Google account, please sign in using that account below. If you believe this is an error, please reach out to Dana.</p>
+    </div>
+
+    <div class="actions">
+      <a href="/home/auth/google/login" class="btn btn-primary">Sign In with a Different Account</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import auth
+from . import auth, common
 
 router = APIRouter()
 
@@ -15,6 +15,9 @@ templates = Jinja2Templates(directory=templates_dir)
 
 # Mount the auth routes (/auth/google/login, /auth/google/callback, etc.)
 router.include_router(auth.router)
+
+# Mount home-common routes (/common, /common/{file_path:path})
+router.include_router(common.router)
 
 
 @router.get("", include_in_schema=False)

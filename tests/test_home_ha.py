@@ -171,6 +171,7 @@ def test_home_ha_javascript_origin_rewrite(
 
     upstream_js = (
         'const R=`${location.protocol}//${location.host}`;o.p="/frontend_latest/";'
+        'fetch("/auth/providers");fetch("/static/translations/en.json");'
     )
 
     mock_resp = MagicMock()
@@ -186,6 +187,27 @@ def test_home_ha_javascript_origin_rewrite(
         body = res.text
         assert "const R=`${location.protocol}//${location.host}/home/ha`" in body
         assert 'o.p="/home/ha/frontend_latest/"' in body
+        assert 'fetch("/home/ha/auth/providers")' in body
+        assert 'fetch("/home/ha/static/translations/en.json")' in body
+
+
+def test_home_ha_css_rewrite(client, mock_ha_db, allowlisted_dana_session):
+    client.cookies.set("ainulindale_home_session", "session-dana-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_dana_session
+
+    upstream_css = 'body { background: url(/static/fonts/roboto.woff2); }'
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "text/css"}
+    mock_resp.text = upstream_css
+
+    with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_req:
+        mock_req.return_value = mock_resp
+
+        res = client.get("/home/ha/static/app.css")
+        assert res.status_code == 200
+        assert 'url(/home/ha/static/fonts/roboto.woff2)' in res.text
 
 
 def test_home_ha_upstream_failure_returns_502(

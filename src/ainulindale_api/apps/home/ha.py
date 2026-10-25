@@ -271,7 +271,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     if "text/html" in content_type:
         text = upstream_res.text
         rewritten = re.sub(
-            r'([("\'=`])/(frontend_|static/|manifest\.json|service_worker\.js|auth_header/)',
+            r'([("\'=`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
             r"\1/home/ha/\2",
             text,
         )
@@ -281,7 +281,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             headers=response_headers,
         )
 
-    # 2. JavaScript Rewriting for subpath origin and chunk loading
+    # 2. JavaScript Rewriting for subpath origin, chunk loading, auth and assets
     if "javascript" in content_type:
         text = upstream_res.text
         target_r = "const R=`${location.protocol}//${location.host}`"
@@ -290,14 +290,29 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             text = text.replace(target_r, subpath_r)
 
         text = re.sub(
-            r'([a-zA-Z0-9_$]+)\.p="/frontend_',
-            r'\1.p="/home/ha/frontend_',
+            r'([("\'=`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
+            r"\1/home/ha/\2",
             text,
         )
 
         return Response(
             content=text,
             media_type="application/javascript",
+            status_code=upstream_res.status_code,
+            headers=response_headers,
+        )
+
+    # 3. CSS Rewriting for static font / image references
+    if "css" in content_type:
+        text = upstream_res.text
+        text = re.sub(
+            r'([("\'=`])/(frontend_|static/)',
+            r"\1/home/ha/\2",
+            text,
+        )
+        return Response(
+            content=text,
+            media_type="text/css",
             status_code=upstream_res.status_code,
             headers=response_headers,
         )

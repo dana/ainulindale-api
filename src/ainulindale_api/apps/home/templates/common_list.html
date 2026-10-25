@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Common - diederich.ai</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --button-bg: #334155;
+      --button-hover: #475569;
+      --row-hover: #1e293b;
+      --border-subtle: #293548;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .titles h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .titles p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.2rem;
+    }
+
+    .user-badge {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .breadcrumbs a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+      text-decoration: underline;
+    }
+
+    .file-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .file-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .file-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #cbd5e1;
+    }
+
+    .file-table tr:hover td {
+      background-color: rgba(51, 65, 85, 0.4);
+    }
+
+    .file-name {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 500;
+    }
+
+    .file-name a {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .file-name a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .file-icon {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+
+    .file-size {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .file-date {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.15s ease;
+      border: 1px solid var(--card-border);
+      background: var(--button-bg);
+      color: var(--text);
+    }
+
+    .btn:hover {
+      background: var(--button-hover);
+    }
+
+    .empty-state {
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="titles">
+        <h1>home-common</h1>
+        <p>Private Authenticated Storage</p>
+      </div>
+      <div class="user-badge">{{ email }}</div>
+    </div>
+
+    <div class="breadcrumbs">
+      <a href="/home/">Home</a> /
+      <a href="/home/common">common</a>
+      {% for crumb in breadcrumbs %}
+        / <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+      {% endfor %}
+    </div>
+
+    {% if items %}
+    <table class="file-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Size</th>
+          <th>Modified</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if parent_url %}
+        <tr>
+          <td colspan="3" class="file-name">
+            <span class="file-icon">📁</span>
+            <a href="{{ parent_url }}">.. (Parent Directory)</a>
+          </td>
+        </tr>
+        {% endif %}
+        {% for item in items %}
+        <tr>
+          <td class="file-name">
+            <span class="file-icon">{% if item.is_dir %}📁{% else %}📄{% endif %}</span>
+            <a href="{{ item.url }}">{{ item.name }}</a>
+          </td>
+          <td class="file-size">{{ item.size_str }}</td>
+          <td class="file-date">{{ item.mtime_str }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      No accessible files in this directory.
+    </div>
+    {% endif %}
+
+    <div class="actions">
+      <a href="/home/" class="btn">← Back to Portal</a>
+      <form action="/home/auth/signout" method="POST" style="margin: 0;">
+        <button type="submit" class="btn">Sign Out</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

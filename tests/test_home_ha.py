@@ -172,6 +172,7 @@ def test_home_ha_javascript_origin_rewrite(
     upstream_js = (
         'const R=`${location.protocol}//${location.host}`;o.p="/frontend_latest/";'
         'fetch("/auth/providers");fetch("/static/translations/en.json");'
+        'url(${(0,a.iz)(/static/)}fonts/roboto/Roboto-Regular.woff2);'
     )
 
     mock_resp = MagicMock()
@@ -189,6 +190,9 @@ def test_home_ha_javascript_origin_rewrite(
         assert 'o.p="/home/ha/frontend_latest/"' in body
         assert 'fetch("/home/ha/auth/providers")' in body
         assert 'fetch("/home/ha/static/translations/en.json")' in body
+        # Ensure regex literal (/static/) is NOT corrupted to (/home/ha/static/)
+        assert '(/static/)' in body
+        assert '(/home/ha/static/)' not in body
 
 
 def test_home_ha_css_rewrite(client, mock_ha_db, allowlisted_dana_session):

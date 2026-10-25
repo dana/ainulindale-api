@@ -94,7 +94,7 @@ async def alerta_root_redirect():
 
 @router.get("/login", include_in_schema=False)
 async def alerta_login_redirect():
-    """Redirect Alerta login path back to the main console since auth is handled by Google OAuth."""
+    """Redirect Alerta login back to main console since auth is handled upstream."""
     return RedirectResponse(url="/home/alerta/", status_code=303)
 
 
@@ -226,7 +226,7 @@ async def alerta_proxy(request: Request, subpath: str = ""):
             headers=response_headers,
         )
 
-    # 2. JavaScript Rewriting for Webpack public path, config loader, and initial auth state
+    # 2. JavaScript Rewriting for Webpack public path, loader, and initial auth
     if "javascript" in content_type:
         text = upstream_res.text
         # Rewrite webpack public path from "/" to "/home/alerta/"
@@ -239,7 +239,7 @@ async def alerta_proxy(request: Request, subpath: str = ""):
         )
         if old_config_call in text:
             text = text.replace(old_config_call, new_config_call)
-        # Ensure default Vuex initial state has auth_required: false so Vue router never redirects to /login
+        # Ensure default Vuex state has auth_required: false (prevents /login redirect)
         if "auth_required:!0" in text:
             text = text.replace("auth_required:!0", "auth_required:!1")
         return Response(

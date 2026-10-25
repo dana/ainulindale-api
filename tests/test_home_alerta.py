@@ -160,7 +160,7 @@ def test_home_alerta_js_rewriting(
     mock_resp.text = (
         'function init(){c.p="/";console.log("loader");}'
         'var e="/";return this.$http.get("".concat(e,"config.json"))'
-        ',alarm_model:{},auth_required:!0,allow_readonly:!1'
+        ",alarm_model:{},auth_required:!0,allow_readonly:!1"
     )
     mock_async = AsyncMock()
     mock_async.request.return_value = mock_resp

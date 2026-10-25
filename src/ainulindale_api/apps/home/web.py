@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import alerta, auth, common
+from . import alerta, auth, common, ha
 
 router = APIRouter()
 
@@ -21,6 +21,9 @@ router.include_router(common.router)
 
 # Mount alerta console reverse-proxy routes (/alerta, /alerta/{subpath:path})
 router.include_router(alerta.router)
+
+# Mount Home Assistant reverse-proxy routes (/ha, /ha/{subpath:path})
+router.include_router(ha.router)
 
 
 @router.get("", include_in_schema=False)

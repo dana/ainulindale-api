@@ -290,7 +290,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             text = text.replace(target_r, subpath_r)
 
         text = re.sub(
-            r'([("\'=`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
+            r'([\"\'\`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
             r"\1/home/ha/\2",
             text,
         )

@@ -29,6 +29,7 @@ HOP_BY_HOP_HEADERS = {
     "upgrade",
     "content-length",
     "host",
+    "accept-encoding",
 }
 
 

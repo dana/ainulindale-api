@@ -93,6 +93,12 @@ def test_home_alerta_non_allowlisted_email_forbidden(
     assert "stranger@example.com" in res.text
 
 
+def test_home_alerta_login_redirect(client):
+    res = client.get("/home/alerta/login", follow_redirects=False)
+    assert res.status_code == 303
+    assert res.headers["location"] == "/home/alerta/"
+
+
 def test_home_alerta_config_json(client, mock_alerta_db, allowlisted_session):
     client.cookies.set("ainulindale_home_session", "session-dana-alerta")
     mock_alerta_db["get_session"].return_value = allowlisted_session
@@ -102,6 +108,8 @@ def test_home_alerta_config_json(client, mock_alerta_db, allowlisted_session):
     data = res.json()
     assert data["endpoint"] == "/home/alerta/api"
     assert data["base_path"] == "/home/alerta"
+    assert data["auth_required"] is False
+    assert data["allow_readonly"] is True
     assert "severity" in data["columns"]
     assert "grafana" in data["columns"]
 
@@ -152,6 +160,7 @@ def test_home_alerta_js_rewriting(
     mock_resp.text = (
         'function init(){c.p="/";console.log("loader");}'
         'var e="/";return this.$http.get("".concat(e,"config.json"))'
+        ',alarm_model:{},auth_required:!0,allow_readonly:!1'
     )
     mock_async = AsyncMock()
     mock_async.request.return_value = mock_resp
@@ -164,6 +173,8 @@ def test_home_alerta_js_rewriting(
         'var e="/home/alerta/";return this.$http.get("".concat(e,"config.json"))'
         in res.text
     )
+    assert "auth_required:!1" in res.text
+    assert "auth_required:!0" not in res.text
 
 
 @patch("ainulindale_api.apps.home.alerta.httpx.AsyncClient")

@@ -198,11 +198,17 @@ def test_home_alerta_api_proxying_and_sanitization(
     mock_async.request.return_value = mock_resp
     mock_client_cls.return_value.__aenter__.return_value = mock_async
 
-    res = client.get("/home/alerta/api/alerts")
+    res = client.get(
+        "/home/alerta/api/alerts", headers={"Accept-Encoding": "gzip, br, zstd"}
+    )
     assert res.status_code == 200
     assert "192.168.1.247:8080" not in res.text
     assert "/home/alerta/api/alert/alert-1" in res.text
     assert res.json()["endpoint"] == "/home/alerta/api"
+
+    # Verify accept-encoding is stripped so httpx manages standard compression
+    call_kwargs = mock_async.request.call_args[1]
+    assert "accept-encoding" not in call_kwargs["headers"]
 
 
 @patch("ainulindale_api.apps.home.alerta.httpx.AsyncClient")

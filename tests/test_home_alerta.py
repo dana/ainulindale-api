@@ -110,6 +110,7 @@ def test_home_alerta_config_json(client, mock_alerta_db, allowlisted_session):
     assert data["base_path"] == "/home/alerta"
     assert data["auth_required"] is False
     assert data["allow_readonly"] is True
+    assert data["filter"] == {"status": ["open", "ack"]}
     assert "severity" in data["columns"]
     assert "grafana" in data["columns"]
 
@@ -187,15 +188,21 @@ def test_home_alerta_api_proxying_and_sanitization(
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.headers = {"content-type": "application/json"}
-    mock_resp.text = '{"status":"ok","alerts":[{"id":"alert-1","href":"http://192.168.1.247:8080/api/alert/alert-1"}]}'
+    mock_resp.text = (
+        '{"status":"ok",'
+        '"endpoint":"https, https://192.168.1.247:8080/api",'
+        '"alerts":[{"id":"alert-1",'
+        '"href":"https, https:/192.168.1.247:8080/api/alert/alert-1"}]}'
+    )
     mock_async = AsyncMock()
     mock_async.request.return_value = mock_resp
     mock_client_cls.return_value.__aenter__.return_value = mock_async
 
     res = client.get("/home/alerta/api/alerts")
     assert res.status_code == 200
-    assert "http://192.168.1.247:8080" not in res.text
+    assert "192.168.1.247:8080" not in res.text
     assert "/home/alerta/api/alert/alert-1" in res.text
+    assert res.json()["endpoint"] == "/home/alerta/api"
 
 
 @patch("ainulindale_api.apps.home.alerta.httpx.AsyncClient")

@@ -111,6 +111,7 @@ async def alerta_config(request: Request):
         "auth_required": False,
         "allow_readonly": True,
         "refresh_interval": 30000,
+        "filter": {"status": ["open", "ack"]},
         "columns": [
             "severity",
             "status",
@@ -144,17 +145,18 @@ async def alerta_proxy(request: Request, subpath: str = ""):
     # Prepare forwarded headers
     forward_headers = {}
     for key, value in request.headers.items():
-        if key.lower() not in HOP_BY_HOP_HEADERS:
-            forward_headers[key] = value
+        k_lower = key.lower()
+        if k_lower not in HOP_BY_HOP_HEADERS and k_lower != "x-forwarded-proto":
+            forward_headers[k_lower] = value
 
-    forward_headers["X-Forwarded-Proto"] = "https"
-    forward_headers["X-Forwarded-Host"] = request.headers.get("host", "diederich.ai")
-    forward_headers["X-Forwarded-Prefix"] = "/home/alerta"
+    forward_headers["x-forwarded-proto"] = "https"
+    forward_headers["x-forwarded-host"] = request.headers.get("host", "diederich.ai")
+    forward_headers["x-forwarded-prefix"] = "/home/alerta"
 
     # Forward client IP
     client_ip = request.client.host if request.client else "127.0.0.1"
     existing_forwarded = request.headers.get("x-forwarded-for")
-    forward_headers["X-Forwarded-For"] = (
+    forward_headers["x-forwarded-for"] = (
         f"{existing_forwarded}, {client_ip}" if existing_forwarded else client_ip
     )
 
@@ -252,6 +254,27 @@ async def alerta_proxy(request: Request, subpath: str = ""):
     # 3. JSON Rewriting for API responses to clean upstream addresses
     if "application/json" in content_type:
         text = upstream_res.text
+        # Clean any malformed scheme and host prefixes from upstream
+        text = re.sub(
+            r"[a-zA-Z0-9_,\s]+://[^\"/]*192\.168\.1\.247:8080/api",
+            "/home/alerta/api",
+            text,
+        )
+        text = re.sub(
+            r"[a-zA-Z0-9_,\s]+:/+192\.168\.1\.247:8080/api",
+            "/home/alerta/api",
+            text,
+        )
+        text = re.sub(
+            r"[a-zA-Z0-9_,\s]+://[^\"/]*192\.168\.1\.247:8080",
+            "/home/alerta",
+            text,
+        )
+        text = re.sub(
+            r"[a-zA-Z0-9_,\s]+:/+192\.168\.1\.247:8080",
+            "/home/alerta",
+            text,
+        )
         if upstream_base in text:
             text = text.replace(f"{upstream_base}/api", "/home/alerta/api")
             text = text.replace(upstream_base, "/home/alerta")

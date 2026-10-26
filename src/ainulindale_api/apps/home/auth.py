@@ -65,7 +65,7 @@ def get_session_cookie(request: Request) -> str | None:
 
 
 def set_session_cookie(response: Response, session: models.HomeSession):
-    cookie_path = os.getenv("HOME_COOKIE_PATH", "/home")
+    cookie_path = os.getenv("HOME_COOKIE_PATH", "/")
     max_age = 30 * 24 * 60 * 60  # 30 days
     expires = datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=max_age)
     response.set_cookie(
@@ -81,7 +81,7 @@ def set_session_cookie(response: Response, session: models.HomeSession):
 
 
 def clear_session_cookie(response: Response):
-    cookie_path = os.getenv("HOME_COOKIE_PATH", "/home")
+    cookie_path = os.getenv("HOME_COOKIE_PATH", "/")
     response.delete_cookie(
         key=COOKIE_NAME,
         path=cookie_path,

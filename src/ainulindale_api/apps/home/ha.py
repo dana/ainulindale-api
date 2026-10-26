@@ -16,7 +16,12 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 
 from . import auth, models
@@ -24,6 +29,7 @@ from . import auth, models
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ha", tags=["home-ha"])
+camera_router = APIRouter(tags=["home-ha-camera"])
 
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
@@ -60,9 +66,9 @@ def get_upstream_ws_url() -> str:
 
 def get_request_timeout() -> float:
     try:
-        return float(os.getenv("HOME_ASSISTANT_TIMEOUT", "15.0"))
+        return float(os.getenv("HOME_ASSISTANT_TIMEOUT", "30.0"))
     except ValueError:
-        return 15.0
+        return 30.0
 
 
 async def authenticate_request(
@@ -220,6 +226,46 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     body = await request.body()
     timeout = get_request_timeout()
 
+    is_stream = "camera_proxy_stream" in subpath or "camera_proxy_stream" in request.url.path
+    if is_stream:
+        try:
+            client = httpx.AsyncClient(timeout=None)
+            req = client.build_request(
+                method=request.method,
+                url=target_url,
+                headers=forward_headers,
+                content=body if body else None,
+            )
+            upstream_res = await client.send(req, stream=True)
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+            logger.error(f"Home Assistant upstream stream failed ({target_url}): {e}")
+            return JSONResponse(
+                status_code=502,
+                content={"detail": "Home Assistant upstream camera stream unavailable."},
+            )
+
+        async def stream_generator():
+            try:
+                async for chunk in upstream_res.aiter_raw():
+                    yield chunk
+            finally:
+                await upstream_res.aclose()
+                await client.aclose()
+
+        response_headers = {}
+        for key, val in upstream_res.headers.items():
+            if key.lower() not in HOP_BY_HOP_HEADERS and key.lower() != "content-encoding":
+                response_headers[key] = val
+
+        return StreamingResponse(
+            stream_generator(),
+            status_code=upstream_res.status_code,
+            headers=response_headers,
+            media_type=upstream_res.headers.get(
+                "content-type", "multipart/x-mixed-replace; boundary=--frameboundary"
+            ),
+        )
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             upstream_res = await client.request(
@@ -289,6 +335,21 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
         if target_r in text:
             text = text.replace(target_r, subpath_r)
 
+        target_a = "const A=()=>location.pathname"
+        subpath_a = 'const A=()=>location.pathname.replace(/^\\/home\\/ha/,"")||"/"'
+        if target_a in text:
+            text = text.replace(target_a, subpath_a)
+
+        target_push = 'r.pushState(h(t?.data,n.G.location.pathname),"",e)'
+        subpath_push = 'r.pushState(h(t?.data,n.G.location.pathname),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))'
+        if target_push in text:
+            text = text.replace(target_push, subpath_push)
+
+        target_replace = 'r.replaceState(h(n,o),"",e)'
+        subpath_replace = 'r.replaceState(h(n,o),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))'
+        if target_replace in text:
+            text = text.replace(target_replace, subpath_replace)
+
         text = re.sub(
             r'([\"\'\`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
             r"\1/home/ha/\2",
@@ -317,10 +378,146 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             headers=response_headers,
         )
 
-    # 3. JSON and binary assets passthrough
+    # 4. JSON and binary assets passthrough
     return Response(
         content=upstream_res.content,
         media_type=content_type,
+        status_code=upstream_res.status_code,
+        headers=response_headers,
+    )
+
+
+@camera_router.api_route(
+    "/api/camera_proxy/{subpath:path}",
+    methods=["GET", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+@camera_router.api_route(
+    "/api/camera_proxy_stream/{subpath:path}",
+    methods=["GET", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+@camera_router.api_route(
+    "/api/image_proxy/{subpath:path}",
+    methods=["GET", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+@camera_router.api_route(
+    "/api/image_proxy_stream/{subpath:path}",
+    methods=["GET", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+async def ha_camera_root_proxy(request: Request, subpath: str = ""):
+    """Reverse proxy root-level camera and media proxy requests directly to Home Assistant."""
+    session_id = auth.get_session_cookie(request)
+    session = None
+    if session_id:
+        with contextlib.suppress(Exception):
+            session = await models.get_session(session_id)
+
+    is_auth = (
+        session is not None
+        and session.is_authenticated
+        and auth.is_email_allowed(session.email)
+    )
+    has_token = bool(
+        request.query_params.get("token") or request.query_params.get("authSig")
+    )
+
+    if not is_auth and not has_token:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Authentication required"},
+        )
+
+    upstream_base = get_upstream_http_url()
+    target_url = f"{upstream_base}{request.url.path}"
+    if request.url.query:
+        target_url = f"{target_url}?{request.url.query}"
+
+    forward_headers = {}
+    for k, v in request.headers.items():
+        k_lower = k.lower()
+        if k_lower not in HOP_BY_HOP_HEADERS and k_lower != "x-forwarded-proto":
+            forward_headers[k_lower] = v
+
+    forward_headers["x-forwarded-proto"] = "https"
+    forward_headers["x-forwarded-host"] = request.headers.get("host", "diederich.ai")
+    if is_auth and session:
+        forward_headers["x-forwarded-user"] = session.email
+        forward_headers["x-forwarded-email"] = session.email
+        forward_headers["x-forwarded-name"] = session.name or ""
+
+    is_stream = "stream" in request.url.path
+    if is_stream:
+        try:
+            client = httpx.AsyncClient(timeout=None)
+            req = client.build_request(
+                method=request.method,
+                url=target_url,
+                headers=forward_headers,
+            )
+            upstream_res = await client.send(req, stream=True)
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+            logger.error(
+                f"Home Assistant camera stream connection failed ({target_url}): {e}"
+            )
+            return JSONResponse(
+                status_code=502,
+                content={"detail": "Camera stream unavailable."},
+            )
+
+        async def stream_generator():
+            try:
+                async for chunk in upstream_res.aiter_raw():
+                    yield chunk
+            finally:
+                await upstream_res.aclose()
+                await client.aclose()
+
+        response_headers = {}
+        for key, val in upstream_res.headers.items():
+            if (
+                key.lower() not in HOP_BY_HOP_HEADERS
+                and key.lower() != "content-encoding"
+            ):
+                response_headers[key] = val
+
+        return StreamingResponse(
+            stream_generator(),
+            status_code=upstream_res.status_code,
+            headers=response_headers,
+            media_type=upstream_res.headers.get(
+                "content-type", "multipart/x-mixed-replace; boundary=--frameboundary"
+            ),
+        )
+
+    timeout = get_request_timeout()
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            upstream_res = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=forward_headers,
+                follow_redirects=False,
+            )
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+        logger.error(
+            f"Home Assistant camera proxy connection failed ({target_url}): {e}"
+        )
+        return JSONResponse(
+            status_code=502,
+            content={"detail": "Camera snapshot unavailable."},
+        )
+
+    response_headers = {}
+    for key, val in upstream_res.headers.items():
+        if key.lower() not in HOP_BY_HOP_HEADERS and key.lower() != "content-encoding":
+            response_headers[key] = val
+
+    return Response(
+        content=upstream_res.content,
+        media_type=upstream_res.headers.get("content-type", "image/jpeg"),
         status_code=upstream_res.status_code,
         headers=response_headers,
     )

@@ -60,9 +60,7 @@ def create_app() -> FastAPI:
     @app.get("/live-cameras/{subpath:path}", include_in_schema=False)
     async def redirect_live_cameras(subpath: str = ""):
         target = (
-            f"/home/ha/live-cameras/{subpath}"
-            if subpath
-            else "/home/ha/live-cameras"
+            f"/home/ha/live-cameras/{subpath}" if subpath else "/home/ha/live-cameras"
         )
         return RedirectResponse(url=target, status_code=307)
 

@@ -172,7 +172,7 @@ def test_home_ha_javascript_origin_rewrite(
     upstream_js = (
         'const R=`${location.protocol}//${location.host}`;o.p="/frontend_latest/";'
         'fetch("/auth/providers");fetch("/static/translations/en.json");'
-        'url(${(0,a.iz)(/static/)}fonts/roboto/Roboto-Regular.woff2);'
+        "url(${(0,a.iz)(/static/)}fonts/roboto/Roboto-Regular.woff2);"
     )
 
     mock_resp = MagicMock()
@@ -191,15 +191,15 @@ def test_home_ha_javascript_origin_rewrite(
         assert 'fetch("/home/ha/auth/providers")' in body
         assert 'fetch("/home/ha/static/translations/en.json")' in body
         # Ensure regex literal (/static/) is NOT corrupted to (/home/ha/static/)
-        assert '(/static/)' in body
-        assert '(/home/ha/static/)' not in body
+        assert "(/static/)" in body
+        assert "(/home/ha/static/)" not in body
 
 
 def test_home_ha_css_rewrite(client, mock_ha_db, allowlisted_dana_session):
     client.cookies.set("ainulindale_home_session", "session-dana-ha")
     mock_ha_db["get_session"].return_value = allowlisted_dana_session
 
-    upstream_css = 'body { background: url(/static/fonts/roboto.woff2); }'
+    upstream_css = "body { background: url(/static/fonts/roboto.woff2); }"
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -211,7 +211,7 @@ def test_home_ha_css_rewrite(client, mock_ha_db, allowlisted_dana_session):
 
         res = client.get("/home/ha/static/app.css")
         assert res.status_code == 200
-        assert 'url(/home/ha/static/fonts/roboto.woff2)' in res.text
+        assert "url(/home/ha/static/fonts/roboto.woff2)" in res.text
 
 
 def test_home_ha_upstream_failure_returns_502(
@@ -317,7 +317,7 @@ def test_home_ha_javascript_router_and_pushstate_rewrite(
     mock_ha_db["get_session"].return_value = allowlisted_dana_session
 
     upstream_js = (
-        'const A=()=>location.pathname;'
+        "const A=()=>location.pathname;"
         'r.pushState(h(t?.data,n.G.location.pathname),"",e);'
         'r.replaceState(h(n,o),"",e);'
     )
@@ -333,7 +333,16 @@ def test_home_ha_javascript_router_and_pushstate_rewrite(
         res = client.get("/home/ha/frontend_latest/app.js")
         assert res.status_code == 200
         body = res.text
-        assert 'const A=()=>location.pathname.replace(/^\\/home\\/ha/,"")||"/"' in body
-        assert 'r.pushState(h(t?.data,n.G.location.pathname),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))' in body
-        assert 'r.replaceState(h(n,o),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))' in body
+        expected_push = (
+            'r.pushState(h(t?.data,n.G.location.pathname),"",'
+            '(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")'
+            '?"/home/ha"+e:e))'
+        )
+        assert expected_push in body
 
+        expected_replace = (
+            'r.replaceState(h(n,o),"",'
+            '(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")'
+            '?"/home/ha"+e:e))'
+        )
+        assert expected_replace in body

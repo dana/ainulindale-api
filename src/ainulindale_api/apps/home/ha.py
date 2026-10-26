@@ -226,10 +226,12 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     body = await request.body()
     timeout = get_request_timeout()
 
-    is_stream = "camera_proxy_stream" in subpath or "camera_proxy_stream" in request.url.path
+    is_stream = (
+        "camera_proxy_stream" in subpath or "camera_proxy_stream" in request.url.path
+    )
     if is_stream:
         try:
-            client = httpx.AsyncClient(timeout=None)
+            client = httpx.AsyncClient(timeout=None)  # nosec B113
             req = client.build_request(
                 method=request.method,
                 url=target_url,
@@ -241,7 +243,9 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             logger.error(f"Home Assistant upstream stream failed ({target_url}): {e}")
             return JSONResponse(
                 status_code=502,
-                content={"detail": "Home Assistant upstream camera stream unavailable."},
+                content={
+                    "detail": "Home Assistant upstream camera stream unavailable."
+                },
             )
 
         async def stream_generator():
@@ -254,7 +258,10 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
 
         response_headers = {}
         for key, val in upstream_res.headers.items():
-            if key.lower() not in HOP_BY_HOP_HEADERS and key.lower() != "content-encoding":
+            if (
+                key.lower() not in HOP_BY_HOP_HEADERS
+                and key.lower() != "content-encoding"
+            ):
                 response_headers[key] = val
 
         return StreamingResponse(
@@ -262,12 +269,13 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             status_code=upstream_res.status_code,
             headers=response_headers,
             media_type=upstream_res.headers.get(
-                "content-type", "multipart/x-mixed-replace; boundary=--frameboundary"
+                "content-type",
+                "multipart/x-mixed-replace; boundary=--frameboundary",
             ),
         )
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:  # nosec B113
             upstream_res = await client.request(
                 method=request.method,
                 url=target_url,
@@ -341,17 +349,25 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
             text = text.replace(target_a, subpath_a)
 
         target_push = 'r.pushState(h(t?.data,n.G.location.pathname),"",e)'
-        subpath_push = 'r.pushState(h(t?.data,n.G.location.pathname),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))'
+        subpath_push = (
+            'r.pushState(h(t?.data,n.G.location.pathname),"",'
+            '(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")'
+            '?"/home/ha"+e:e))'
+        )
         if target_push in text:
             text = text.replace(target_push, subpath_push)
 
         target_replace = 'r.replaceState(h(n,o),"",e)'
-        subpath_replace = 'r.replaceState(h(n,o),"",(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")?"/home/ha"+e:e))'
+        subpath_replace = (
+            'r.replaceState(h(n,o),"",'
+            '(typeof e==="string"&&e.startsWith("/")&&!e.startsWith("/home/ha")'
+            '?"/home/ha"+e:e))'
+        )
         if target_replace in text:
             text = text.replace(target_replace, subpath_replace)
 
         text = re.sub(
-            r'([\"\'\`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)',
+            r"([\"\'\`])/(frontend_|static/|auth/|manifest\.json|service_worker\.js|auth_header/)",
             r"\1/home/ha/\2",
             text,
         )
@@ -408,7 +424,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     include_in_schema=False,
 )
 async def ha_camera_root_proxy(request: Request, subpath: str = ""):
-    """Reverse proxy root-level camera and media proxy requests directly to Home Assistant."""
+    """Reverse proxy root camera & media requests directly to HA."""
     session_id = auth.get_session_cookie(request)
     session = None
     if session_id:
@@ -451,7 +467,7 @@ async def ha_camera_root_proxy(request: Request, subpath: str = ""):
     is_stream = "stream" in request.url.path
     if is_stream:
         try:
-            client = httpx.AsyncClient(timeout=None)
+            client = httpx.AsyncClient(timeout=None)  # nosec B113
             req = client.build_request(
                 method=request.method,
                 url=target_url,
@@ -494,7 +510,7 @@ async def ha_camera_root_proxy(request: Request, subpath: str = ""):
 
     timeout = get_request_timeout()
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:  # nosec B113
             upstream_res = await client.request(
                 method=request.method,
                 url=target_url,

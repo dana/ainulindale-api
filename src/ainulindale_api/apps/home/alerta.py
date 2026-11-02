@@ -279,6 +279,12 @@ async def alerta_proxy(request: Request, subpath: str = ""):
         if upstream_base in text:
             text = text.replace(f"{upstream_base}/api", "/home/alerta/api")
             text = text.replace(upstream_base, "/home/alerta")
+        # Rewrite Grafana internal URLs to authenticated external gateway
+        text = re.sub(
+            r"https?://[^\"/]*192\.168\.1\.247:3000",
+            "https://diederich.ai/home/grafana",
+            text,
+        )
         return Response(
             content=text,
             media_type="application/json",

@@ -28,7 +28,6 @@ router.include_router(ha.router)
 # Mount Grafana monitoring reverse-proxy routes (/grafana, /grafana/{subpath:path})
 router.include_router(grafana.router)
 
-
 @router.get("", include_in_schema=False)
 @router.get("/", include_in_schema=False)
 async def home_index(request: Request):

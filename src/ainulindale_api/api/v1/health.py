@@ -42,6 +42,11 @@ def healthz() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
+@root_router.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(status="ok")
+
+
 @root_router.get("/readyz", response_model=ReadyResponse)
 def readyz() -> ReadyResponse:
     return ReadyResponse(status="ready")

@@ -98,7 +98,7 @@ async def authenticate_request(
             context={
                 "email": session.email,
                 "name": session.name,
-                "allowlist": sorted(list(auth.get_allowlist())),
+                "allowlist": sorted(auth.get_allowlist()),
             },
             status_code=403,
         )

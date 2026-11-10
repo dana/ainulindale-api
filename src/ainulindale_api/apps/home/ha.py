@@ -101,7 +101,7 @@ async def authenticate_request(
             context={
                 "email": session.email,
                 "name": session.name,
-                "allowlist": sorted(list(auth.get_allowlist())),
+                "allowlist": sorted(auth.get_allowlist()),
             },
             status_code=403,
         )
@@ -231,7 +231,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     )
     if is_stream:
         try:
-            client = httpx.AsyncClient(timeout=None)  # nosec B113
+            client = httpx.AsyncClient(timeout=None)  # nosec B113 # noqa: S113
             req = client.build_request(
                 method=request.method,
                 url=target_url,
@@ -467,7 +467,7 @@ async def ha_camera_root_proxy(request: Request, subpath: str = ""):
     is_stream = "stream" in request.url.path
     if is_stream:
         try:
-            client = httpx.AsyncClient(timeout=None)  # nosec B113
+            client = httpx.AsyncClient(timeout=None)  # nosec B113 # noqa: S113
             req = client.build_request(
                 method=request.method,
                 url=target_url,

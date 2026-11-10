@@ -34,7 +34,7 @@ packages = ["src/ainulindale_api"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --timeout=30 --cov-fail-under=70"
 filterwarnings = [
     "ignore:.*_UnionGenericAlias.*:DeprecationWarning",
     "ignore:Using `httpx` with `starlette.testclient` is deprecated",
@@ -45,5 +45,9 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B", "S", "ASYNC", "T20", "C4"]
+ignore = ["ASYNC230", "ASYNC240", "S105"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]
 

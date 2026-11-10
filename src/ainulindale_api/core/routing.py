@@ -18,7 +18,9 @@ async def enforce_public_json_request_contract(
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     is_public_application_path = request.url.path.startswith(f"{API_V1_PREFIX}/")
-    is_upload_path = request.url.path.endswith("/upload")
+    is_upload_path = request.url.path.endswith(
+        "/upload"
+    ) or request.url.path.startswith(f"{API_V1_PREFIX}/health-connect/")
     method_can_have_json_body = request.method in JSON_BODY_METHODS
 
     if (

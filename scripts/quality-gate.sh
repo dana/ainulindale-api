@@ -53,7 +53,32 @@ if python -m ruff format --check . | tee reports/ruff-format.txt; then
     echo "PASS: ruff format check"
 else
     status=$?
-    echo "WARN: ruff format check exited with status ${status}"
+    echo "FAIL: ruff format check exited with status ${status}"
+    failures+=("ruff format check")
+fi
+
+echo
+echo "==> gitleaks secret scan"
+if command -v gitleaks >/dev/null 2>&1; then
+    run_step "gitleaks secret scan" \
+        gitleaks detect --source . --report-format json --report-path reports/gitleaks.json --redact
+elif [ -n "${CI:-}" ]; then
+    echo "FAIL: gitleaks is required in CI environment"
+    failures+=("gitleaks secret scan")
+else
+    echo "WARN: gitleaks not found in PATH; skipping local secret scan"
+fi
+
+echo
+echo "==> semgrep SAST scan"
+if command -v semgrep >/dev/null 2>&1; then
+    run_step "semgrep SAST scan" \
+        semgrep scan --config p/python --config p/owasp-top-ten --json --output reports/semgrep.json --error src/
+elif [ -n "${CI:-}" ]; then
+    echo "FAIL: semgrep is required in CI environment"
+    failures+=("semgrep SAST scan")
+else
+    echo "WARN: semgrep not found in PATH; skipping local semgrep scan"
 fi
 
 run_step "bandit static security scan" \
@@ -69,6 +94,36 @@ run_step "pip-audit dependency vulnerability scan" \
         -f json \
         -o reports/pip-audit.json \
         --progress-spinner off
+
+if [ -f "Containerfile" ]; then
+    echo
+    echo "==> hadolint Containerfile lint"
+    if command -v hadolint >/dev/null 2>&1; then
+        run_step "hadolint Containerfile lint" \
+            hadolint Containerfile
+    elif [ -n "${CI:-}" ]; then
+        echo "FAIL: hadolint is required in CI environment"
+        failures+=("hadolint Containerfile lint")
+    else
+        echo "WARN: hadolint not found in PATH; skipping Containerfile lint"
+    fi
+fi
+
+echo
+echo "==> trivy config scan and CycloneDX SBOM"
+if command -v trivy >/dev/null 2>&1; then
+    if [ -f "Containerfile" ]; then
+        run_step "trivy config scan" \
+            trivy config --severity HIGH,CRITICAL --format json --output reports/trivy-config.json Containerfile
+    fi
+    run_step "trivy CycloneDX SBOM generation" \
+        trivy fs --format cyclonedx --output reports/cyclonedx.json .
+elif [ -n "${CI:-}" ]; then
+    echo "FAIL: trivy is required in CI environment"
+    failures+=("trivy config & SBOM")
+else
+    echo "WARN: trivy not found in PATH; skipping trivy config scan & SBOM generation"
+fi
 
 echo
 echo "Generated reports:"

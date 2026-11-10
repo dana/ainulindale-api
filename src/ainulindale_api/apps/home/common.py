@@ -67,7 +67,7 @@ async def serve_home_common(request: Request, file_path: str = ""):
             context={
                 "email": session.email,
                 "name": session.name,
-                "allowlist": sorted(list(auth.get_allowlist())),
+                "allowlist": sorted(auth.get_allowlist()),
             },
             status_code=403,
         )

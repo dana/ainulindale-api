@@ -73,7 +73,7 @@ def send_unknown_signature_alert(
 
     url = f"{NTFY_URL.rstrip('/')}/{NTFY_TOPIC}"
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310
         url,
         data=data,
         headers={"Content-Type": "application/json; charset=utf-8"},
@@ -81,7 +81,7 @@ def send_unknown_signature_alert(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310 # noqa: S310
             logger.info("Sent unknown signature ntfy alert (HTTP %d)", resp.status)
             return True
     except Exception as e:

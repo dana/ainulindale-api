@@ -43,13 +43,13 @@ def get_client() -> genai.Client:
                 context = ssl.create_default_context()
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE  # nosec
-                req = urllib.request.Request(
+                req = urllib.request.Request(  # noqa: S310
                     url, headers={"Authorization": f"Bearer {token}"}
                 )
 
-                with urllib.request.urlopen(
+                with urllib.request.urlopen(  # nosec # noqa: S310
                     req, context=context, timeout=10
-                ) as response:  # nosec
+                ) as response:
                     data = json.loads(response.read().decode())
                     b64_val = data.get("data", {}).get("GEMINI_API_KEY")
                     if b64_val:

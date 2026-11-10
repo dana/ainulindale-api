@@ -232,7 +232,7 @@ async def google_callback(
             context={
                 "email": email,
                 "name": name,
-                "allowlist": sorted(list(get_allowlist())),
+                "allowlist": sorted(get_allowlist()),
             },
             status_code=403,
         )

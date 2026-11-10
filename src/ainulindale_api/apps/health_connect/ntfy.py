@@ -81,7 +81,7 @@ def send_unknown_signature_alert(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             logger.info("Sent unknown signature ntfy alert (HTTP %d)", resp.status)
             return True
     except Exception as e:

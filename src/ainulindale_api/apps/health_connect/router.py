@@ -62,8 +62,8 @@ def get_status(_token: str = Depends(verify_bearer_token)) -> dict[str, Any]:
             if recv > latest_time:
                 latest_time = recv
                 latest_meta = data
-        except Exception:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            logger.debug("Skipping invalid meta file %s: %s", mf, e)
 
     return {
         "status": "ok",
@@ -106,8 +106,8 @@ def get_inventory(_token: str = Depends(verify_bearer_token)) -> dict[str, Any]:
             max_t = data.get("maxTime")
             if max_t and (latest_time is None or max_t > latest_time):
                 latest_time = max_t
-        except Exception:
-            continue
+        except (json.JSONDecodeError, OSError) as e:
+            logger.debug("Skipping invalid meta file %s: %s", mf, e)
 
     return {
         "totalUploadBatches": len(meta_files),

@@ -346,3 +346,74 @@ def test_home_ha_javascript_router_and_pushstate_rewrite(
             '?"/home/ha"+e:e))'
         )
         assert expected_replace in body
+
+
+def test_home_ha_media_root_proxy_unauthenticated(client, mock_ha_db):
+    mock_ha_db["get_session"].return_value = None
+    res = client.get("/media/local/latest_motion.mp4", follow_redirects=False)
+    assert res.status_code == 303
+    assert res.headers["location"] == "/home/auth/google/login?redirect=/home/ha/"
+
+
+def test_home_ha_media_root_proxy_unauthorized_email(
+    client, mock_ha_db, non_allowlisted_session
+):
+    client.cookies.set("ainulindale_home_session", "session-stranger-ha")
+    mock_ha_db["get_session"].return_value = non_allowlisted_session
+
+    res = client.get("/media/local/latest_motion.mp4", follow_redirects=False)
+    assert res.status_code == 403
+    assert (
+        "Access Restricted" in res.text
+        or "Unauthorized" in res.text
+        or "stranger@example.com" in res.text
+    )
+
+
+def test_home_ha_media_root_proxy_allowlisted_streaming(
+    client, mock_ha_db, allowlisted_dana_session
+):
+    client.cookies.set("ainulindale_home_session", "session-dana-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_dana_session
+
+    async def fake_aiter():
+        yield b"fake-video-chunk-1"
+        yield b"fake-video-chunk-2"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 206
+    mock_resp.headers = {
+        "content-type": "video/mp4",
+        "content-range": "bytes 0-100/1000",
+        "content-length": "100",
+        "accept-ranges": "bytes",
+    }
+    mock_resp.aiter_raw = fake_aiter
+    mock_resp.aclose = AsyncMock()
+
+    with patch("httpx.AsyncClient.send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_resp
+
+        res = client.get(
+            "/media/local/latest_motion.mp4?authSig=valid-token",
+            headers={"range": "bytes=0-100"},
+        )
+        assert res.status_code == 206
+        assert res.headers["content-type"] == "video/mp4"
+        assert res.headers["content-range"] == "bytes 0-100/1000"
+        assert res.headers["content-length"] == "100"
+        assert res.content == b"fake-video-chunk-1fake-video-chunk-2"
+
+
+def test_home_ha_media_root_proxy_upstream_error(
+    client, mock_ha_db, allowlisted_dana_session
+):
+    client.cookies.set("ainulindale_home_session", "session-dana-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_dana_session
+
+    with patch("httpx.AsyncClient.send", new_callable=AsyncMock) as mock_send:
+        mock_send.side_effect = httpx.ConnectError("Failed to connect")
+
+        res = client.get("/media/local/latest_motion.mp4")
+        assert res.status_code == 502
+        assert res.json() == {"detail": "Home Assistant media unavailable."}

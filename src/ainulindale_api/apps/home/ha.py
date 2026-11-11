@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ha", tags=["home-ha"])
 camera_router = APIRouter(tags=["home-ha-camera"])
+media_router = APIRouter(tags=["home-ha-media"])
 
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
@@ -536,4 +537,77 @@ async def ha_camera_root_proxy(request: Request, subpath: str = ""):
         media_type=upstream_res.headers.get("content-type", "image/jpeg"),
         status_code=upstream_res.status_code,
         headers=response_headers,
+    )
+
+
+@media_router.api_route(
+    "/media/{subpath:path}",
+    methods=["GET", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+async def ha_media_root_proxy(request: Request, subpath: str = ""):
+    """Reverse proxy root /media requests directly to HA.
+
+    Strictly protected by Google auth.
+    """
+    session, error_resp = await authenticate_request(request)
+    if error_resp:
+        return error_resp
+
+    upstream_base = get_upstream_http_url()
+    target_url = (
+        f"{upstream_base}/media/{subpath}" if subpath else f"{upstream_base}/media"
+    )
+    if request.url.query:
+        target_url = f"{target_url}?{request.url.query}"
+
+    forward_headers = {}
+    for k, v in request.headers.items():
+        k_lower = k.lower()
+        if k_lower not in HOP_BY_HOP_HEADERS and k_lower != "x-forwarded-proto":
+            forward_headers[k_lower] = v
+
+    forward_headers["x-forwarded-proto"] = "https"
+    forward_headers["x-forwarded-host"] = request.headers.get("host", "diederich.ai")
+    forward_headers["x-forwarded-prefix"] = "/home/ha"
+    forward_headers["x-forwarded-user"] = session.email
+    forward_headers["x-forwarded-email"] = session.email
+    forward_headers["x-forwarded-name"] = session.name or ""
+
+    try:
+        client = httpx.AsyncClient(timeout=None)  # nosec B113 # noqa: S113
+        req = client.build_request(
+            method=request.method,
+            url=target_url,
+            headers=forward_headers,
+        )
+        upstream_res = await client.send(req, stream=True)
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
+        logger.error(
+            f"Home Assistant media proxy connection failed ({target_url}): {e}"
+        )
+        return JSONResponse(
+            status_code=502,
+            content={"detail": "Home Assistant media unavailable."},
+        )
+
+    async def stream_generator():
+        try:
+            async for chunk in upstream_res.aiter_raw():
+                yield chunk
+        finally:
+            await upstream_res.aclose()
+            await client.aclose()
+
+    response_headers = {}
+    for key, val in upstream_res.headers.items():
+        k_low = key.lower()
+        if k_low not in HOP_BY_HOP_HEADERS or k_low == "content-length":
+            response_headers[key] = val
+
+    return StreamingResponse(
+        stream_generator(),
+        status_code=upstream_res.status_code,
+        headers=response_headers,
+        media_type=upstream_res.headers.get("content-type", "application/octet-stream"),
     )

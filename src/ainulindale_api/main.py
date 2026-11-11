@@ -10,6 +10,7 @@ from ainulindale_api.apps.eridian_echo.web import router as eridian_echo_router
 from ainulindale_api.apps.home.ha import camera_router as ha_camera_router
 from ainulindale_api.apps.home.ha import media_router as ha_media_router
 from ainulindale_api.apps.home.web import router as home_router
+from ainulindale_api.apps.ip.router import router as ip_router
 from ainulindale_api.apps.main_site.web import router as main_site_router
 from ainulindale_api.apps.ops_console.web import router as ops_console_router
 from ainulindale_api.apps.share.web import router as share_router
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(eridian_echo_router, prefix="/api/v1/eridian-echo")
     app.include_router(ops_console_router, prefix="/ops")
     app.include_router(share_router, prefix="/s")
+    app.include_router(ip_router)
 
     # Camera and stream proxy endpoints directly forwarded to Home Assistant
     app.include_router(ha_camera_router)

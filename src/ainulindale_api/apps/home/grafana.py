@@ -237,11 +237,14 @@ async def grafana_http_proxy(request: Request, subpath: str = ""):
         if k_lower not in HOP_BY_HOP_HEADERS and k_lower != "x-forwarded-proto":
             forward_headers[k_lower] = v
 
+    is_admin = auth.is_admin_email(session.email)
     forward_headers["x-forwarded-proto"] = "https"
     forward_headers["x-forwarded-host"] = request.headers.get("host", "diederich.ai")
     forward_headers["x-forwarded-prefix"] = "/home/grafana"
+    forward_headers["x-forwarded-role"] = "admin" if is_admin else "readonly"
     forward_headers["x-webauth-user"] = session.email
     forward_headers["x-webauth-name"] = session.name or session.email
+    forward_headers["x-webauth-role"] = "Admin" if is_admin else "Viewer"
 
     client_ip = request.client.host if request.client else "127.0.0.1"
     existing_fwd = request.headers.get("x-forwarded-for")

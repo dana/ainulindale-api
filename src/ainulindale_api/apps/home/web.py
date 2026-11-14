@@ -46,5 +46,6 @@ async def home_index(request: Request):
             "user": user,
             "email": session.email,
             "name": session.name or session.email,
+            "is_admin": auth.is_admin_email(session.email),
         },
     )

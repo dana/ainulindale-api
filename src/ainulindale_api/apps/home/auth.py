@@ -22,6 +22,7 @@ templates = Jinja2Templates(directory=templates_dir)
 
 COOKIE_NAME = "ainulindale_home_session"
 DEFAULT_ALLOWLIST = {"diederich@gmail.com", "msdiederich@gmail.com"}
+DEFAULT_ADMIN_ALLOWLIST = {"diederich@gmail.com"}
 
 
 def get_allowlist() -> set[str]:
@@ -35,6 +36,19 @@ def is_email_allowed(email: str | None) -> bool:
     if not email:
         return False
     return email.strip().lower() in get_allowlist()
+
+
+def get_admin_allowlist() -> set[str]:
+    raw = os.getenv("HOME_ADMIN_EMAILS")
+    if not raw:
+        return DEFAULT_ADMIN_ALLOWLIST
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+def is_admin_email(email: str | None) -> bool:
+    if not email:
+        return False
+    return email.strip().lower() in get_admin_allowlist()
 
 
 def get_oauth_client_id() -> str:
@@ -289,12 +303,14 @@ async def verify(request: Request):
             content={"status": "unauthorized", "detail": "Authentication required"},
         )
 
+    role = "admin" if is_admin_email(session.email) else "readonly"
     headers = {
         "X-Forwarded-User": session.email,
         "X-Forwarded-Name": session.name or "",
+        "X-Forwarded-Role": role,
     }
     return JSONResponse(
         status_code=200,
-        content={"status": "authorized", "user": session.email},
+        content={"status": "authorized", "user": session.email, "role": role},
         headers=headers,
     )

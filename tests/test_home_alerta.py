@@ -231,3 +231,19 @@ def test_home_alerta_upstream_error_handled_gracefully(
     res_api = client.get("/home/alerta/api/alerts")
     assert res_api.status_code == 502
     assert "Alerta upstream service unavailable" in res_api.json()["detail"]
+
+
+def test_home_alerta_readonly_blocks_mutations(client, mock_alerta_db):
+    michelle_session = models.HomeSession(
+        id="session-michelle-alerta",
+        user_id="user-michelle",
+        email="msdiederich@gmail.com",
+        name="Michelle Diederich",
+        is_authenticated=True,
+    )
+    client.cookies.set("ainulindale_home_session", "session-michelle-alerta")
+    mock_alerta_db["get_session"].return_value = michelle_session
+
+    res = client.post("/home/alerta/api/alert", json={"status": "ack"})
+    assert res.status_code == 403
+    assert "Read-only access" in res.json()["detail"]

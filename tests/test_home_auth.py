@@ -291,10 +291,38 @@ def test_home_verify_endpoint(client, mock_home_db, fake_authenticated_session):
     res_unauth = client.get("/home/auth/verify")
     assert res_unauth.status_code == 401
 
-    # Authenticated
+    # Authenticated Admin
     client.cookies.set("ainulindale_home_session", "session-auth-123")
     mock_home_db["get_session"].return_value = fake_authenticated_session
     res_auth = client.get("/home/auth/verify")
     assert res_auth.status_code == 200
     assert res_auth.json()["status"] == "authorized"
+    assert res_auth.json()["role"] == "admin"
     assert res_auth.headers["x-forwarded-user"] == "diederich@gmail.com"
+    assert res_auth.headers["x-forwarded-role"] == "admin"
+
+
+def test_home_verify_endpoint_readonly(client, mock_home_db):
+    michelle_session = models.HomeSession(
+        id="session-michelle-verify",
+        user_id="user-michelle",
+        email="msdiederich@gmail.com",
+        name="Michelle Diederich",
+        is_authenticated=True,
+    )
+    client.cookies.set("ainulindale_home_session", "session-michelle-verify")
+    mock_home_db["get_session"].return_value = michelle_session
+    res = client.get("/home/auth/verify")
+    assert res.status_code == 200
+    assert res.json()["role"] == "readonly"
+    assert res.headers["x-forwarded-role"] == "readonly"
+
+
+def test_is_admin_email():
+    from ainulindale_api.apps.home.auth import is_admin_email
+
+    assert is_admin_email("diederich@gmail.com") is True
+    assert is_admin_email("DIEDERICH@GMAIL.COM") is True
+    assert is_admin_email("msdiederich@gmail.com") is False
+    assert is_admin_email("stranger@example.com") is False
+    assert is_admin_email(None) is False

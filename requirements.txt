@@ -6,4 +6,5 @@ python-multipart
 jinja2
 google-auth
 pyasn1>=0.6.5
+dnspython>=2.9.2
 httpx

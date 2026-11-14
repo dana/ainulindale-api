@@ -161,6 +161,67 @@ def test_home_ha_authenticated_michelle_forwarding(
         call_kwargs = mock_req.call_args.kwargs
         assert call_kwargs["headers"]["x-forwarded-user"] == "msdiederich@gmail.com"
         assert call_kwargs["headers"]["x-forwarded-email"] == "msdiederich@gmail.com"
+        assert call_kwargs["headers"]["x-forwarded-role"] == "readonly"
+
+
+def test_home_ha_readonly_user_blocks_mutations(
+    client, mock_ha_db, allowlisted_michelle_session
+):
+    client.cookies.set("ainulindale_home_session", "session-michelle-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_michelle_session
+
+    # POST to services should be blocked with 403 Forbidden
+    res = client.post(
+        "/home/ha/api/services/switch/turn_off", json={"entity_id": "switch.test"}
+    )
+    assert res.status_code == 403
+    assert "Read-only access" in res.json()["detail"]
+
+    # DELETE should be blocked
+    res_del = client.delete("/home/ha/api/states/sensor.test")
+    assert res_del.status_code == 403
+    assert "Read-only access" in res_del.json()["detail"]
+
+
+def test_home_ha_readonly_user_allows_auth_flow(
+    client, mock_ha_db, allowlisted_michelle_session
+):
+    client.cookies.set("ainulindale_home_session", "session-michelle-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_michelle_session
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_resp.content = b'{"type": "create_entry"}'
+
+    with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_req:
+        mock_req.return_value = mock_resp
+
+        # POST to auth endpoints is permitted for session initiation
+        res = client.post("/home/ha/auth/login_flow", json={"client_id": "test"})
+        assert res.status_code == 200
+
+
+def test_home_ha_admin_user_allows_mutations(
+    client, mock_ha_db, allowlisted_dana_session
+):
+    client.cookies.set("ainulindale_home_session", "session-dana-ha")
+    mock_ha_db["get_session"].return_value = allowlisted_dana_session
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.headers = {"content-type": "application/json"}
+    mock_resp.content = b'{"status": "ok"}'
+
+    with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_req:
+        mock_req.return_value = mock_resp
+
+        res = client.post(
+            "/home/ha/api/services/switch/turn_off", json={"entity_id": "switch.test"}
+        )
+        assert res.status_code == 200
+        call_kwargs = mock_req.call_args.kwargs
+        assert call_kwargs["headers"]["x-forwarded-role"] == "admin"
 
 
 def test_home_ha_javascript_origin_rewrite(

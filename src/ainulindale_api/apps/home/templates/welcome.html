@@ -199,6 +199,12 @@
         <span class="status-label">Access Status</span>
         <span class="status-value" style="color: var(--success);">Authorized (Allowlisted)</span>
       </div>
+      <div class="status-row">
+        <span class="status-label">Account Role</span>
+        <span class="status-value" style="color: {% if is_admin %}var(--accent){% else %}var(--success){% endif %};">
+          {% if is_admin %}Full Administrator (Read / Write){% else %}Read-Only{% endif %}
+        </span>
+      </div>
     </div>
 
     <div class="content-box">

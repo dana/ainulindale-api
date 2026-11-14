@@ -131,11 +131,13 @@ async def ha_websocket_proxy(websocket: WebSocket):
 
     await websocket.accept()
 
+    is_admin = auth.is_admin_email(session.email)
     upstream_ws_url = f"{get_upstream_ws_url()}/api/websocket"
     upstream_headers = {
         "X-Forwarded-User": session.email,
         "X-Forwarded-Email": session.email,
         "X-Forwarded-Name": session.name or "",
+        "X-Forwarded-Role": "admin" if is_admin else "readonly",
         "X-Forwarded-Proto": "https",
         "X-Forwarded-Host": "diederich.ai",
         "X-Forwarded-Prefix": "/home/ha",
@@ -200,6 +202,24 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     if error_resp:
         return error_resp
 
+    is_admin = auth.is_admin_email(session.email)
+    if not is_admin and request.method in {"POST", "PUT", "DELETE", "PATCH"}:
+        normalized_subpath = subpath.strip("/")
+        # Allow frontend auth initialization / token exchanges
+        if not (normalized_subpath.startswith("auth/") or normalized_subpath == "auth"):
+            logger.warning(
+                f"Blocked {request.method} to {subpath} from read-only {session.email}"
+            )
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": (
+                        "Read-only access: mutating operations are restricted to "
+                        "administrators."
+                    )
+                },
+            )
+
     upstream_base = get_upstream_http_url()
     target_url = f"{upstream_base}/{subpath}" if subpath else f"{upstream_base}/"
     if request.url.query:
@@ -217,6 +237,7 @@ async def ha_http_proxy(request: Request, subpath: str = ""):
     forward_headers["x-forwarded-user"] = session.email
     forward_headers["x-forwarded-email"] = session.email
     forward_headers["x-forwarded-name"] = session.name or ""
+    forward_headers["x-forwarded-role"] = "admin" if is_admin else "readonly"
 
     client_ip = request.client.host if request.client else "127.0.0.1"
     existing_fwd = request.headers.get("x-forwarded-for")

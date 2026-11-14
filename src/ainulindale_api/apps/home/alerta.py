@@ -134,9 +134,25 @@ async def alerta_config(request: Request):
 )
 async def alerta_proxy(request: Request, subpath: str = ""):
     """Reverse proxy authenticated requests to upstream Alerta console and API."""
-    _, error_response = await authenticate_request(request)
+    session, error_response = await authenticate_request(request)
     if error_response:
         return error_response
+
+    is_admin = auth.is_admin_email(session.email) if session else False
+    if not is_admin and request.method in {"POST", "PUT", "DELETE", "PATCH"}:
+        user_id = session.email if session else "unknown"
+        logger.warning(
+            f"Blocked mutating {request.method} to Alerta from read-only user {user_id}"
+        )
+        return JSONResponse(
+            status_code=403,
+            content={
+                "detail": (
+                    "Read-only access: alert mutations are restricted to "
+                    "administrators."
+                )
+            },
+        )
 
     upstream_base = get_upstream_url()
     target_url = f"{upstream_base}/{subpath}" if subpath else f"{upstream_base}/"
@@ -153,6 +169,7 @@ async def alerta_proxy(request: Request, subpath: str = ""):
     forward_headers["x-forwarded-proto"] = "https"
     forward_headers["x-forwarded-host"] = request.headers.get("host", "diederich.ai")
     forward_headers["x-forwarded-prefix"] = "/home/alerta"
+    forward_headers["x-forwarded-role"] = "admin" if is_admin else "readonly"
 
     # Forward client IP
     client_ip = request.client.host if request.client else "127.0.0.1"

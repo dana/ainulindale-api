@@ -21,7 +21,11 @@ templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
 COOKIE_NAME = "ainulindale_home_session"
-DEFAULT_ALLOWLIST = {"diederich@gmail.com", "msdiederich@gmail.com"}
+DEFAULT_ALLOWLIST = {
+    "diederich@gmail.com",
+    "msdiederich@gmail.com",
+    "noahmatters@gmail.com",
+}
 DEFAULT_ADMIN_ALLOWLIST = {"diederich@gmail.com"}
 
 

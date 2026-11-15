@@ -319,10 +319,16 @@ def test_home_verify_endpoint_readonly(client, mock_home_db):
 
 
 def test_is_admin_email():
-    from ainulindale_api.apps.home.auth import is_admin_email
+    from ainulindale_api.apps.home.auth import is_admin_email, is_email_allowed
 
     assert is_admin_email("diederich@gmail.com") is True
     assert is_admin_email("DIEDERICH@GMAIL.COM") is True
     assert is_admin_email("msdiederich@gmail.com") is False
+    assert is_admin_email("noahmatters@gmail.com") is False
     assert is_admin_email("stranger@example.com") is False
     assert is_admin_email(None) is False
+
+    assert is_email_allowed("diederich@gmail.com") is True
+    assert is_email_allowed("msdiederich@gmail.com") is True
+    assert is_email_allowed("noahmatters@gmail.com") is True
+    assert is_email_allowed("stranger@example.com") is False

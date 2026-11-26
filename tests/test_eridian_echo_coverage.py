@@ -5,8 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ainulindale_api.apps.eridian_echo import models, service
-from ainulindale_api.main import app
+from ainulindale_api.main import create_app
 
+app = create_app(enable_eridian_echo=True)
 client = TestClient(app)
 
 

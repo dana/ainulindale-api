@@ -143,12 +143,6 @@ def test_openapi_advertises_only_intended_paths() -> None:
         "/api/v1/health-connect/import",
         "/api/v1/health-connect/status",
         "/api/v1/health-connect/inventory",
-        "/api/v1/eridian-echo/upload",
-        "/api/v1/eridian-echo/jobs",
-        "/api/v1/eridian-echo/jobs/{job_id}",
-        "/api/v1/eridian-echo/auth/google/login",
-        "/api/v1/eridian-echo/auth/google/callback",
-        "/api/v1/eridian-echo/auth/signout",
     }
     assert set(schema["paths"]["/api/v1/echo"].keys()) == {"post"}
     assert set(schema["paths"]["/api/v1/happy-path"].keys()) == {"post"}
@@ -158,6 +152,19 @@ def test_openapi_advertises_only_intended_paths() -> None:
     assert "/api/v1" not in schema["paths"]
     assert "/docs" not in schema["paths"]
     assert "/redoc" not in schema["paths"]
+
+
+def test_eridian_echo_disabled_by_default() -> None:
+    response = client.get("/api/v1/eridian-echo/")
+    assert response.status_code == 404
+
+    response = client.get("/api/v1/eridian-echo/jobs")
+    assert response.status_code == 404
+    assert response.headers.get("content-type", "").startswith("application/json")
+    assert response.json() == {"detail": "Not Found"}
+
+    response = client.get("/api/v1/assets/eridian-echo/eridian-echo.css")
+    assert response.status_code == 404
 
 
 def test_happy_path_endpoint_accepts_json_and_returns_json() -> None:

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 
-def mount_static_assets(app: FastAPI) -> None:
+def mount_static_assets(app: FastAPI, enable_eridian_echo: bool = False) -> None:
     # Resolve paths relative to the current file
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,11 +18,14 @@ def mount_static_assets(app: FastAPI) -> None:
         StaticFiles(directory=os.path.join(base_dir, "apps", "main_site", "static")),
         name="static_main",
     )
-    app.mount(
-        "/api/v1/assets/eridian-echo",
-        StaticFiles(directory=os.path.join(base_dir, "apps", "eridian_echo", "static")),
-        name="static_eridian_echo",
-    )
+    if enable_eridian_echo:
+        app.mount(
+            "/api/v1/assets/eridian-echo",
+            StaticFiles(
+                directory=os.path.join(base_dir, "apps", "eridian_echo", "static")
+            ),
+            name="static_eridian_echo",
+        )
     app.mount(
         "/assets/ops",
         StaticFiles(directory=os.path.join(base_dir, "apps", "ops_console", "static")),

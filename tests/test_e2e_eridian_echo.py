@@ -7,7 +7,9 @@ from fastapi.testclient import TestClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from ainulindale_api.core import db
-from ainulindale_api.main import app
+from ainulindale_api.main import create_app
+
+app = create_app(enable_eridian_echo=True)
 
 MP3_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "fixtures/new-service-test.mp3")
